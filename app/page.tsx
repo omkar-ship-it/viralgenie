@@ -1,5 +1,6 @@
 import { Nav } from "@/components/concept/Nav";
 import { Hero } from "@/components/concept/Hero";
+import { RankWars } from "@/components/concept/RankWars";
 import { LoopDiagram } from "@/components/concept/LoopDiagram";
 import { CustomerApp } from "@/components/concept/CustomerApp";
 import { MerchantConsole } from "@/components/concept/MerchantConsole";
@@ -36,9 +37,19 @@ export default function Home() {
       <Nav />
       <Hero />
 
-      <section id="loop" className="mx-auto max-w-[1180px] border-t border-border px-6 py-22">
+      <section id="rankwars" className="mx-auto max-w-[1180px] border-t border-border px-6 py-22">
         <SectionHeader
           num="01"
+          label="Live activity"
+          title="No auctions. Just pay more, right now."
+          lede="This is the part borrowed straight from outbid.lol: there's no scheduled close. Any merchant can dethrone the current #1 the instant they're willing to pay more, and everyone watching sees it happen — that's the actual growth engine, not the game."
+        />
+        <RankWars />
+      </section>
+
+      <section id="loop" className="mx-auto max-w-[1180px] border-t border-border px-6 py-22">
+        <SectionHeader
+          num="02"
           label="How it turns"
           title="Two loops, one shared incentive"
           lede="The bidding loop pays for reach and stocks the reward pool. The wishes loop turns individual asks into shareable brand moments. Both loops end where footfall is measured, which is the metric that funds the next bid."
@@ -48,7 +59,7 @@ export default function Home() {
 
       <section id="customer" className="mx-auto max-w-[1180px] border-t border-border px-6 py-22">
         <SectionHeader
-          num="02"
+          num="03"
           label="Customer app"
           title="Three screens, one session"
           lede="The pool sells the visit, the game delivers the dopamine, the wish board keeps them coming back between campaigns."
@@ -58,20 +69,20 @@ export default function Home() {
 
       <section id="merchant" className="mx-auto max-w-[1180px] border-t border-border px-6 py-22">
         <SectionHeader
-          num="03"
+          num="04"
           label="Merchant console"
-          title="Where the bidding actually happens"
-          lede="Merchants see rank as something they're actively losing unless they act — the same live-auction pressure that makes outbid.lol compulsive, pointed at footfall instead of a leaderboard for its own sake."
+          title="Where the ladder actually gets defended"
+          lede="Merchants see rank as something they're actively losing the moment they stop paying attention — the same always-on pressure that makes outbid.lol compulsive, pointed at footfall instead of a leaderboard for its own sake."
         />
         <MerchantConsole />
       </section>
 
       <section id="playbook" className="mx-auto max-w-[1180px] border-t border-border px-6 py-22">
         <SectionHeader
-          num="04"
+          num="05"
           label="Recommendations"
           title="Six calls to make before building this"
-          lede="In priority order — each one guards against the way outbid.lol-style auctions tend to break when the thing being won is a real reward instead of a leaderboard slot."
+          lede="In priority order — each one guards against the way outbid.lol's always-live ladder tends to break when the thing being won is a real reward instead of a leaderboard slot."
         />
         <Playbook />
       </section>

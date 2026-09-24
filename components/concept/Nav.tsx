@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 const LINKS = [
+  { href: "#rankwars", label: "Rank Wars" },
   { href: "#loop", label: "Loop" },
   { href: "#customer", label: "Customer App" },
   { href: "#merchant", label: "Merchant Console" },

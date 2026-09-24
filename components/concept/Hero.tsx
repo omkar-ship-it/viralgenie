@@ -26,15 +26,16 @@ export function Hero() {
   return (
     <section id="top" className="mx-auto max-w-[1180px] px-6 pt-16 pb-14">
       <span className="mb-3.5 block text-[12px] font-semibold tracking-[0.09em] text-gold uppercase">
-        Adapting outbid.lol&rsquo;s live-auction energy into LoyalGenie
+        Adapted from outbid.lol&rsquo;s always-live, pay-to-dethrone ladder
       </span>
       <h1 className="max-w-[16ch] text-[clamp(32px,5vw,52px)] leading-[1.08] font-semibold tracking-tight">
         Merchants bid for the spotlight. Customers play for the prize.
       </h1>
       <p className="mt-4.5 max-w-[62ch] text-[16.5px] text-text-soft">
-        A shared reward pool, funded and ranked by merchants who bid for visibility, paid
-        out through the game mechanics LoyalGenie already has — plus a wish marketplace
-        where brands earn goodwill by granting what customers actually ask for.
+        No scheduled auctions — any merchant can pay to take #1 at any moment, and holds it
+        until someone pays more. That rank feeds a shared reward pool, played out through
+        the game mechanics LoyalGenie already has, plus a wish marketplace where brands earn
+        goodwill by granting what customers actually ask for.
       </p>
 
       <div className="mt-9 flex flex-wrap items-center gap-2.5">
@@ -43,7 +44,7 @@ export function Hero() {
             className="motion-safe-only h-[7px] w-[7px] rounded-full bg-warn"
             style={{ animation: "pulse 1.8s ease-in-out infinite" }}
           />
-          Live in Koramangala pool
+          Holding right now · Koramangala pool
         </span>
         {bids.map((b) => (
           <div
@@ -56,7 +57,7 @@ export function Hero() {
             </span>
             {b.name}
             <span className="mono font-semibold text-accent-deep">
-              ₹{b.base.toLocaleString("en-IN")}/wk
+              ₹{b.base.toLocaleString("en-IN")}
             </span>
           </div>
         ))}

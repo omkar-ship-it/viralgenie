@@ -1,13 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-function fmt(totalSeconds: number) {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
-}
+import { useState } from "react";
 
 function Panel({
   title,
@@ -51,37 +44,76 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function BidForRank() {
-  const [secondsLeft, setSecondsLeft] = useState(4 * 3600 + 12 * 60 + 36);
-  const [bid, setBid] = useState(6500);
+const MIN_INCREMENT = 300;
+const STARTING_HOLDER = { name: "Third Wave Coffee", price: 8000, heldDays: 4 };
+const STOCK_HOURS_TOTAL = 24;
 
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(id);
-  }, []);
+function BidForRank() {
+  const [holder, setHolder] = useState(STARTING_HOLDER);
+  const [youAreHolder, setYouAreHolder] = useState(false);
+  const [stockHours, setStockHours] = useState(6);
+  const nextBid = holder.price + MIN_INCREMENT;
+
+  function outbid() {
+    setHolder({ name: "You", price: nextBid, heldDays: 0 });
+    setYouAreHolder(true);
+    setStockHours(STOCK_HOURS_TOTAL);
+  }
 
   return (
-    <Panel title="Bid for Rank" badge={<Badge tone="warn">Rank #2</Badge>}>
-      <Row label="Leading bid — Third Wave Coffee" value="₹8,000/wk" />
-      <Row label="Time left in this window" value={fmt(secondsLeft)} />
+    <Panel
+      title="Rank Ladder"
+      badge={
+        <Badge tone={youAreHolder ? "good" : "warn"}>
+          {youAreHolder ? "You hold #1" : "You hold #2"}
+        </Badge>
+      }
+    >
+      <Row label={`#1 — ${holder.name}`} value={`₹${holder.price.toLocaleString("en-IN")}`} />
+      <Row
+        label="Holding #1 since"
+        value={holder.heldDays === 0 ? "just now" : `${holder.heldDays} days ago`}
+      />
+      <p className="mt-2 text-[11.5px] text-text-soft">
+        No scheduled close — #1 stays yours until someone pays more. Every bid is final.
+      </p>
+
       <div className="mt-3.5 flex items-center gap-2 rounded-[10px] bg-surface-sunken px-3 py-2.5">
         <span className="mono">₹</span>
-        <input
-          value={bid.toLocaleString("en-IN")}
-          readOnly
-          aria-label="Your bid amount"
-          className="mono flex-1 bg-transparent text-[15px] font-semibold outline-none"
-        />
-        <button
-          onClick={() => setBid((b) => b + 500)}
-          className="rounded-lg border border-border bg-surface-raised px-2.5 py-1.5 text-[12px] font-semibold text-accent-deep"
-        >
-          +500
-        </button>
+        <span className="mono flex-1 text-[15px] font-semibold">
+          {nextBid.toLocaleString("en-IN")}
+        </span>
+        <span className="text-[11px] text-text-soft">min. to outbid</span>
       </div>
-      <p className="mt-3 mb-1.5 text-[11.5px] text-text-soft">
-        Projected reach if you take #1
+      <button
+        onClick={outbid}
+        disabled={youAreHolder}
+        className="mt-2.5 w-full rounded-full py-2.5 text-[13px] font-semibold text-white disabled:opacity-60"
+        style={{ background: "linear-gradient(120deg, var(--accent), var(--accent-deep))" }}
+      >
+        {youAreHolder ? "You're #1 right now" : `Outbid for #1 — ₹${nextBid.toLocaleString("en-IN")}`}
+      </button>
+
+      <div className="mt-4 border-t border-border pt-3.5">
+        <div className="mb-1.5 flex items-center justify-between text-[11.5px]">
+          <span className="text-text-soft">Reward stock defending your rank</span>
+          <span className={`font-semibold ${stockHours <= 6 ? "text-warn" : "text-good"}`}>
+            ~{stockHours} hrs left
+          </span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+          <div
+            className={`h-full rounded-full ${stockHours <= 6 ? "bg-warn" : "bg-good"}`}
+            style={{ width: `${Math.min(100, (stockHours / STOCK_HOURS_TOTAL) * 100)}%` }}
+          />
+        </div>
+        <p className="mt-1.5 text-[10.5px] text-text-soft">
+          Auto-demoted the moment stock hits zero — even if no one outbids you.
+        </p>
+      </div>
+
+      <p className="mt-3.5 mb-1.5 text-[11.5px] text-text-soft">
+        Projected reach if you hold #1
       </p>
       <div className="h-2 overflow-hidden rounded-full bg-surface-sunken">
         <div className="reach-fill h-full rounded-full" style={{ width: "72%" }} />

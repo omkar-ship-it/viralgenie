@@ -1,18 +1,18 @@
 const PILLARS = [
   {
-    title: "Segment the auction — never one national ladder",
-    body: "Run rank auctions per category × neighbourhood (e.g. “Food & Beverage · Koramangala”), on a weekly cadence matching campaign cycles already in the vendor wizard. A single global ladder lets one large chain buy every #1 slot in the city; segmented pods let a local café actually win its own neighbourhood.",
+    title: "Segment the ladder — never one national leaderboard",
+    body: "Run a separate, always-live rank ladder per category × neighbourhood (e.g. “Food & Beverage · Koramangala”), each with its own #1 to dethrone. A single global ladder lets one large chain buy every #1 slot in the city forever; segmented pods let a local café actually take its own neighbourhood.",
     tag: "Guards against whale dominance",
   },
   {
     title: "Bid buys odds-weight, not a guaranteed prize",
-    body: "Rank should set the payout probability in the spin/dice/lamp mechanic, not hand out the reward outright — cap any single sponsor's odds share (e.g. 35%) so the pool still feels generous and random to players even when one merchant is winning the bid war.",
+    body: "Rank should set the payout probability in the spin/dice/lamp mechanic, not hand out the reward outright — cap any single sponsor's odds share (e.g. 35%) so the pool still feels generous and random to players even when one merchant has held #1 for weeks.",
     tag: "Keeps the game feeling fair",
   },
   {
-    title: "Pay-on-win escrow with anti-snipe",
-    body: "Charge the merchant's card only when their bid wins the window, and extend the countdown by 60–90 seconds on any bid in the final minute — the same anti-sniping outbid.lol-style auctions need to stop a last-second bid from making every earlier bidder feel cheated.",
-    tag: "Trust in the auction itself",
+    title: "Charge on outbid, not on a schedule — but require live stock to hold it",
+    body: "No auction window means no anti-snipe to design — just charge the instant a bid exceeds the current holder's price, final and non-refundable, exactly like outbid.lol. The one addition outbid.lol doesn't need: auto-demote a merchant the moment their reward stock hits zero, regardless of what they paid, so #1 can never mean “nothing left to redeem.”",
+    tag: "Trust in the ladder itself",
   },
   {
     title: "Wishes get a merchant first-look window, then go public",
@@ -20,8 +20,8 @@ const PILLARS = [
     tag: "Protects the goodwill mechanic",
   },
   {
-    title: "Make rank changes and grants shareable events, not just UI states",
-    body: "A push notification when a merchant is outbid (“you dropped to #2 in Koramangala”), a share card auto-generated the moment a wish is granted, and an in-app “your play just moved Third Wave to #1” moment for the customer whose spin tipped the pool — these are the actual viral loop, not the leaderboard itself.",
+    title: "Publish every dethroning — merchants are the real audience",
+    body: "outbid.lol's virality came from other founders watching the leaderboard change and jumping in themselves, not from end users. A public, screenshot-worthy “Rank Wars” feed of every outbid event (who paid what to take #1 from whom) is what pulls the next merchant in — plus a push notification the moment you're dethroned (“you dropped to #2 in Koramangala”).",
     tag: "This is the growth engine",
   },
   {
