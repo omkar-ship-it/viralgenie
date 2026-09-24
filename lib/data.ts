@@ -483,6 +483,20 @@ export const BRAND_TAGLINE: Record<string, string> = {
   "campfire-co": "Tents, bonfires, stargazing",
 };
 
+/**
+ * Placeholder destinations on the IANA-reserved `.example` TLD, which never
+ * resolves. Several brand names here match real Bengaluru businesses, so
+ * pointing at real sites or Instagram handles would imply those businesses
+ * are signed up when they aren't. A live listing would supply its own URLs.
+ */
+export function brandLinks(id: string) {
+  return {
+    website: `https://${id}.example`,
+    instagram: `https://instagram.example/${id}`,
+    directions: `https://maps.example/${id}`,
+  };
+}
+
 // --- Brandboard: 100 numbered spots, snakes-and-ladders geometry ---
 export const BRANDBOARD_SPOTS = 100;
 export const SPOT_BASE_PRICE = 100;

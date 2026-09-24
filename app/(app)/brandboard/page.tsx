@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
+import { useAppStore, useHasHydrated, PODS, MERCHANTS } from "@/lib/store";
 import {
   BRANDBOARD_SPOTS,
   SPOT_BASE_PRICE,
-  SPOT_INCREMENT,
   CATEGORY_ACCENT,
   squareToCell,
 } from "@/lib/data";
@@ -15,37 +14,30 @@ import { BiddingAsPicker } from "@/components/app/WishBidding";
 import { BoardVariantSwitch } from "@/components/app/BoardVariantSwitch";
 import { useBrandboard } from "@/components/app/useBrandboard";
 import { DieFace } from "@/components/app/DieFace";
+import { SpotModal } from "@/components/app/SpotModal";
 
 
 export default function BrandboardPage() {
   const hydrated = useHasHydrated();
   const spots = useAppStore((s) => s.spots);
-  const stock = useAppStore((s) => s.stock);
-  const wallets = useAppStore((s) => s.wallets);
-  const activeMerchantId = useAppStore((s) => s.activeMerchantId);
-  const claimSpot = useAppStore((s) => s.claimSpot);
+  const registerSpotClick = useAppStore((s) => s.registerSpotClick);
 
   const { mounted, start, die, rolling, busy, result, candidates, tokenSquare, hopping, roll } =
     useBrandboard();
 
   const [selected, setSelected] = useState<number | null>(null);
-  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
 
   if (!hydrated || !mounted) {
     return <div className="mx-auto max-w-[1180px] px-6 py-24 text-text-soft">Waking the genie…</div>;
   }
 
-  function bidOnSpot(square: number) {
-    const res = claimSpot(square, activeMerchantId);
-    setFeedback(res);
-    window.setTimeout(() => setFeedback(null), 4000);
+  function selectSquare(square: number) {
+    setSelected(square);
+    registerSpotClick(square);
   }
 
   const filled = Object.keys(spots).length;
   const landedMerchant = result?.merchantId ? MERCHANTS.find((m) => m.id === result.merchantId) : null;
-  const selectedSpot = selected ? spots[selected] : undefined;
-  const selectedMerchant = selectedSpot ? MERCHANTS.find((m) => m.id === selectedSpot.merchantId) : null;
-  const nextSpotPrice = selectedSpot ? selectedSpot.price + SPOT_INCREMENT : SPOT_BASE_PRICE;
   const tokenCell = squareToCell(tokenSquare);
 
   return (
@@ -101,7 +93,7 @@ export default function BrandboardPage() {
                   <button
                     key={square}
                     className={classes}
-                    onClick={() => setSelected(square)}
+                    onClick={() => selectSquare(square)}
                     style={
                       accent
                         ? {
@@ -213,70 +205,16 @@ export default function BrandboardPage() {
             <div className="rounded-2xl border border-border bg-surface-raised p-5" style={{ boxShadow: "var(--shadow)" }}>
               <h2 className="mb-1 text-[18px]">Claim a spot</h2>
               <p className="mb-3 text-[12.5px] text-text-soft">
-                Tap any square to inspect it. Open spots start at ₹{SPOT_BASE_PRICE}; taking an
-                occupied one costs ₹{SPOT_INCREMENT} more than the brand standing there paid.
+                Tap any square to open the brand standing there — their links, their prizes,
+                and what it costs to take the square. Open spots start at ₹{SPOT_BASE_PRICE}.
               </p>
-
-              <div className="mb-3">
-                <BiddingAsPicker compact />
-              </div>
-
-              {selected === null ? (
-                <p className="rounded-xl bg-surface-sunken px-3 py-3 text-[12.5px] text-text-soft">
-                  No square selected yet.
-                </p>
-              ) : (
-                <div className="rounded-xl bg-surface-sunken px-3.5 py-3">
-                  <div className="flex items-center gap-2.5">
-                    <span className="mono text-[15px] font-bold text-accent-deep">#{selected}</span>
-                    {selectedMerchant ? (
-                      <>
-                        <BrandLogo id={selectedMerchant.id} name={selectedMerchant.name} emoji={selectedMerchant.emoji} size="sm" />
-                        <Link
-                          href={`/brands/${selectedMerchant.id}`}
-                          className="min-w-0 flex-1 truncate text-[12.5px] font-semibold hover:underline"
-                        >
-                          {selectedMerchant.name}
-                        </Link>
-                        <span className="mono text-[13px] font-bold">₹{selectedSpot!.price}</span>
-                      </>
-                    ) : (
-                      <span className="flex-1 text-[12.5px] text-text-soft">Open spot — nobody here yet</span>
-                    )}
-                  </div>
-
-                  {selectedMerchant && (
-                    <p className="mt-2 text-[11px] text-text-soft">
-                      {REWARD_ITEMS.filter((r) => r.merchantId === selectedMerchant.id).reduce(
-                        (sum, r) => sum + (stock[r.id] ?? 0),
-                        0
-                      )}{" "}
-                      prizes behind this square
-                    </p>
-                  )}
-
-                  <button
-                    onClick={() => bidOnSpot(selected)}
-                    disabled={(wallets[activeMerchantId] ?? 0) < nextSpotPrice}
-                    className="btn-primary mt-3 w-full rounded-full py-2.5 text-[12.5px] font-semibold"
-                  >
-                    {selectedSpot ? `Outbid for #${selected} · ₹${nextSpotPrice}` : `Claim #${selected} · ₹${nextSpotPrice}`}
-                  </button>
-                  {(wallets[activeMerchantId] ?? 0) < nextSpotPrice && (
-                    <p className="mt-1.5 text-center text-[10.5px] text-warn">Top up credits above to afford this.</p>
-                  )}
-                </div>
-              )}
-
-              {feedback && (
-                <p className={`mt-2.5 text-[11.5px] font-semibold ${feedback.ok ? "text-good" : "text-warn"}`}>
-                  {feedback.message}
-                </p>
-              )}
+              <BiddingAsPicker compact />
             </div>
           </div>
         </div>
       </div>
+
+      <SpotModal square={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
