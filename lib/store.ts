@@ -11,6 +11,7 @@ import {
   INITIAL_WALLETS,
   INITIAL_LOVES,
   INITIAL_SPOTS,
+  INITIAL_SPOT_CLICKS,
   SPOT_BASE_PRICE,
   SPOT_INCREMENT,
   WISH_BASE_PRICE,
@@ -40,6 +41,7 @@ type State = {
   wins: WinRecord[];
   loves: Record<string, number>;
   spots: Record<number, Spot>;
+  spotClicks: Record<number, number>;
   totalPlaysThisWeek: number;
   activeMerchantId: string;
 
@@ -53,6 +55,7 @@ type State = {
   upvoteWish: (wishId: string) => void;
   loveBrand: (merchantId: string) => void;
   claimSpot: (square: number, merchantId: string) => { ok: boolean; message: string };
+  registerSpotClick: (square: number) => void;
   playBrand: (merchantId: string) => { rewardLabel: string; redemptionCode: string } | null;
   addStock: (rewardId: string, qty: number) => void;
   playGame: (podId: string) => { rewardId: string; rewardLabel: string; merchantId: string; redemptionCode: string } | null;
@@ -70,6 +73,7 @@ export const useAppStore = create<State>()(
       wins: [],
       loves: INITIAL_LOVES,
       spots: INITIAL_SPOTS,
+      spotClicks: INITIAL_SPOT_CLICKS,
       totalPlaysThisWeek: 0,
       activeMerchantId: MERCHANTS[0].id,
 
@@ -160,6 +164,10 @@ export const useAppStore = create<State>()(
 
       loveBrand: (merchantId) => {
         set((s) => ({ loves: { ...s.loves, [merchantId]: (s.loves[merchantId] ?? 0) + 1 } }));
+      },
+
+      registerSpotClick: (square) => {
+        set((s) => ({ spotClicks: { ...s.spotClicks, [square]: (s.spotClicks[square] ?? 0) + 1 } }));
       },
 
       claimSpot: (square, merchantId) => {
@@ -267,7 +275,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v6",
+      name: "viralgenie-store-v7",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({
@@ -278,6 +286,7 @@ export const useAppStore = create<State>()(
         wins: s.wins,
         loves: s.loves,
         spots: s.spots,
+        spotClicks: s.spotClicks,
         totalPlaysThisWeek: s.totalPlaysThisWeek,
         activeMerchantId: s.activeMerchantId,
       }),

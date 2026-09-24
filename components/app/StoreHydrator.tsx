@@ -9,7 +9,7 @@ export function StoreHydrator() {
     useAppStore.getState().setHasHydrated(true);
 
     function onStorage(e: StorageEvent) {
-      if (e.key === "viralgenie-store-v6") {
+      if (e.key === "viralgenie-store-v7") {
         useAppStore.persist.rehydrate();
       }
     }

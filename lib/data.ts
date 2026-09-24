@@ -431,6 +431,58 @@ export const INITIAL_WISHES: Wish[] = [
   },
 ];
 
+/** One-line descriptions, shown wherever a brand needs to sell itself. */
+export const BRAND_TAGLINE: Record<string, string> = {
+  "third-wave": "Single-origin pour-overs, all day",
+  "filter-fable": "Slow brews and shelf-worn paperbacks",
+  "brew-bros": "Fast espresso, no queue",
+  "bean-theory": "Bakes out of the oven at 4",
+  "trips-diner": "All-day breakfast, retro booths",
+  "urban-tadka": "North Indian comfort plates",
+  "thali-junction": "Unlimited thalis, one price",
+  "smoke-skillet": "Charcoal grills and smoked sides",
+  "glow-salon": "Cuts, colour and cold towels",
+  "bliss-studio": "Facials on a lunch break",
+  "mane-room": "Barbering, beards, hot shaves",
+  "lumen-skin": "Dermat-led skin routines",
+  "serene-ayur": "Ayurvedic oils, unhurried hands",
+  "calm-co": "Aromatherapy in a quiet room",
+  "nail-atelier": "Nail art that lasts a month",
+  rejuve: "Long soaks and body therapy",
+  fitzone: "Free weights and 6am classes",
+  "iron-yard": "Powerlifting, proper coaching",
+  "pulse-studio": "Spin classes with the lights down",
+  corelab: "HIIT in forty-five minutes",
+  "yoga-shala": "Ashtanga, beginners welcome",
+  "box-republic": "Boxing drills, real bags",
+  "runclub-blr": "Group runs and gait fixes",
+  "aqua-fit": "Lap pool, heated year round",
+  "urban-threads": "Everyday fits, weekly drops",
+  "loom-co": "Handloom cotton, local weavers",
+  streetkart: "Streetwear and sneakers",
+  "silver-lining": "Silver jewellery, made to order",
+  "sole-story": "Sneakers, sized properly",
+  "page-one": "Books, with a reading corner",
+  "gadget-garage": "Repairs while you wait",
+  "bloom-florals": "Same-day bouquets",
+  cinemax: "Four screens, recliner seats",
+  playzone: "Arcade cabinets and air hockey",
+  "laser-tag": "Two-floor laser arena",
+  "bowl-city": "Ten lanes, late nights",
+  "skybar-21": "Rooftop cocktails at sunset",
+  "comedy-cellar": "Standup, five nights a week",
+  "vinyl-vibes": "Records, DJs and cheap beer",
+  "board-cafe": "300 board games, chai included",
+  wanderwell: "Weekend trips, sorted",
+  hillroute: "Guided treks in the Western Ghats",
+  citystay: "Clean rooms near the metro",
+  rideeasy: "Scooters and helmets on demand",
+  "nest-stays": "Serviced studios, monthly rates",
+  backpackers: "Bunks, hot showers, good wifi",
+  lakeview: "Lakeside cottages, two hours out",
+  "campfire-co": "Tents, bonfires, stargazing",
+};
+
 // --- Brandboard: 100 numbered spots, snakes-and-ladders geometry ---
 export const BRANDBOARD_SPOTS = 100;
 export const SPOT_BASE_PRICE = 100;
@@ -452,6 +504,16 @@ export const INITIAL_SPOTS: Record<number, Spot> = (() => {
     spots[square] = { merchantId: brand.id, price: SPOT_BASE_PRICE + ((square * 17) % 6) * SPOT_INCREMENT };
   }
   return spots;
+})();
+
+/** Seeded so the board shows real engagement rather than a wall of zeros. */
+export const INITIAL_SPOT_CLICKS: Record<number, number> = (() => {
+  const clicks: Record<number, number> = {};
+  for (let square = 1; square <= BRANDBOARD_SPOTS; square++) {
+    if (!INITIAL_SPOTS[square]) continue;
+    clicks[square] = 40 + ((square * 89) % 700);
+  }
+  return clicks;
 })();
 
 /** Same square for everyone on a given day — a shared daily ritual. */

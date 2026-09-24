@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
 import {
@@ -8,45 +8,14 @@ import {
   SPOT_BASE_PRICE,
   SPOT_INCREMENT,
   CATEGORY_ACCENT,
-  genieStartSquare,
   squareToCell,
 } from "@/lib/data";
 import { BrandLogo } from "@/components/app/BrandLogo";
 import { BiddingAsPicker } from "@/components/app/WishBidding";
+import { BoardVariantSwitch } from "@/components/app/BoardVariantSwitch";
+import { useBrandboard } from "@/components/app/useBrandboard";
+import { DieFace } from "@/components/app/DieFace";
 
-const PIP_FACES = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
-
-/** Module scope so the randomness never sits in render-phase code. */
-function rollDie() {
-  return 1 + Math.floor(Math.random() * 6);
-}
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-function playKey() {
-  return `viralgenie-brandboard-${todayKey()}`;
-}
-
-type DailyResult = {
-  rolled: number;
-  landed: number;
-  passed: number;
-  merchantId?: string;
-  rewardLabel?: string;
-  redemptionCode?: string;
-  note?: string;
-};
-
-function readToday(): DailyResult | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(playKey());
-    return raw ? (JSON.parse(raw) as DailyResult) : null;
-  } catch {
-    return null;
-  }
-}
 
 export default function BrandboardPage() {
   const hydrated = useHasHydrated();
@@ -55,111 +24,15 @@ export default function BrandboardPage() {
   const wallets = useAppStore((s) => s.wallets);
   const activeMerchantId = useAppStore((s) => s.activeMerchantId);
   const claimSpot = useAppStore((s) => s.claimSpot);
-  const playBrand = useAppStore((s) => s.playBrand);
 
-  const [mounted, setMounted] = useState(false);
-  const [result, setResult] = useState<DailyResult | null>(null);
+  const { mounted, start, die, rolling, busy, result, candidates, tokenSquare, hopping, roll } =
+    useBrandboard();
+
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
-  const [rolling, setRolling] = useState(false);
-  const [die, setDie] = useState(1);
-  const [tokenSquare, setTokenSquare] = useState(1);
-  const [hopping, setHopping] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  const start = genieStartSquare(todayKey());
-
-  useEffect(() => {
-    // localStorage + today's date are client-only; read after mount so the
-    // prerendered shell and the first client paint agree.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
-    const saved = readToday();
-    if (saved) {
-      setResult(saved);
-      setTokenSquare(saved.landed);
-    } else {
-      setTokenSquare(genieStartSquare(todayKey()));
-    }
-  }, []);
 
   if (!hydrated || !mounted) {
     return <div className="mx-auto max-w-[1180px] px-6 py-24 text-text-soft">Waking the genie…</div>;
-  }
-
-  const playedToday = result !== null;
-  const candidates = playedToday ? [] : Array.from({ length: 6 }, (_, i) => ((start - 1 + i + 1) % BRANDBOARD_SPOTS) + 1);
-
-  function roll() {
-    if (playedToday || busy) return;
-    setBusy(true);
-    setRolling(true);
-    setFeedback(null);
-
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const value = rollDie();
-
-    const shuffle = window.setInterval(() => setDie(rollDie()), 80);
-
-    window.setTimeout(
-      () => {
-        window.clearInterval(shuffle);
-        setDie(value);
-        setRolling(false);
-        walk(value, reduced);
-      },
-      reduced ? 0 : 900
-    );
-  }
-
-  /** A square only stops the genie if someone's home with something to give. */
-  function isHome(square: number) {
-    const spot = spots[square];
-    if (!spot) return false;
-    return REWARD_ITEMS.some((r) => r.merchantId === spot.merchantId && (stock[r.id] ?? 0) > 0);
-  }
-
-  function walk(steps: number, reduced: boolean) {
-    const rolled = ((start - 1 + steps) % BRANDBOARD_SPOTS) + 1;
-
-    // The genie won't settle on an empty lot — he keeps walking until he
-    // finds a brand at home, so a single daily roll is never wasted.
-    let resting = rolled;
-    let passed = 0;
-    while (!isHome(resting) && passed < BRANDBOARD_SPOTS) {
-      resting = (resting % BRANDBOARD_SPOTS) + 1;
-      passed++;
-    }
-
-    const totalHops = steps + passed;
-    const stepMs = reduced ? 0 : 240;
-
-    for (let i = 1; i <= totalHops; i++) {
-      window.setTimeout(() => {
-        setTokenSquare(((start - 1 + i) % BRANDBOARD_SPOTS) + 1);
-        setHopping(true);
-        window.setTimeout(() => setHopping(false), 200);
-      }, i * stepMs);
-    }
-    window.setTimeout(() => land(rolled, resting, passed), totalHops * stepMs + 260);
-  }
-
-  function land(rolled: number, resting: number, passed: number) {
-    const spot = spots[resting];
-    let outcome: DailyResult;
-
-    if (!spot) {
-      outcome = { rolled, landed: resting, passed, note: "Every brand on the board is out of stock today — come back tomorrow." };
-    } else {
-      const prize = playBrand(spot.merchantId);
-      outcome = prize
-        ? { rolled, landed: resting, passed, merchantId: spot.merchantId, rewardLabel: prize.rewardLabel, redemptionCode: prize.redemptionCode }
-        : { rolled, landed: resting, passed, merchantId: spot.merchantId, note: "That brand just ran dry — bad luck." };
-    }
-
-    setResult(outcome);
-    window.localStorage.setItem(playKey(), JSON.stringify(outcome));
-    setBusy(false);
   }
 
   function bidOnSpot(square: number) {
@@ -180,10 +53,14 @@ export default function BrandboardPage() {
       <div className="aurora" style={{ opacity: 0.42 }} />
 
       <div className="relative mx-auto max-w-[1180px] px-6 pt-14 pb-20">
-        <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-[11.5px] font-semibold tracking-wide text-text-soft uppercase">
-          <span className="h-1.5 w-1.5 rounded-full bg-good" />
-          {filled} of {BRANDBOARD_SPOTS} spots claimed
-        </span>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-[11.5px] font-semibold tracking-wide text-text-soft uppercase">
+            <span className="h-1.5 w-1.5 rounded-full bg-good" />
+            {filled} of {BRANDBOARD_SPOTS} spots claimed
+          </span>
+          <BoardVariantSwitch />
+        </div>
+
         <h1 className="max-w-[17ch] text-[clamp(30px,5vw,54px)] leading-[1.03] font-semibold">
           One hundred spots. One roll a day.
         </h1>
@@ -201,7 +78,6 @@ export default function BrandboardPage() {
               {Array.from({ length: 100 }, (_, cellIndex) => {
                 const row = Math.floor(cellIndex / 10);
                 const col = cellIndex % 10;
-                // invert the serpentine mapping to find which square sits here
                 const rowFromBottom = 9 - row;
                 const withinRow = rowFromBottom % 2 === 0 ? col : 9 - col;
                 const square = rowFromBottom * 10 + withinRow + 1;
@@ -226,7 +102,14 @@ export default function BrandboardPage() {
                     key={square}
                     className={classes}
                     onClick={() => setSelected(square)}
-                    style={accent ? { borderColor: selected === square ? undefined : `color-mix(in srgb, var(--${accent}) 45%, var(--border))` } : undefined}
+                    style={
+                      accent
+                        ? {
+                            borderColor:
+                              selected === square ? undefined : `color-mix(in srgb, var(--${accent}) 45%, var(--border))`,
+                          }
+                        : undefined
+                    }
                     title={merchant ? `#${square} · ${merchant.name} · ₹${spot!.price}` : `#${square} · open spot`}
                   >
                     <span className="bb-num">{square}</span>
@@ -241,11 +124,13 @@ export default function BrandboardPage() {
 
               <span
                 className={`bb-token ${hopping ? "hopping" : ""}`}
+                // 10px padding, 4px gap: a cell is (100% - 20px - 9*4px)/10 wide
+                // and each column starts one cell + one gap further along.
                 style={{
-                  left: `calc(10px + ${tokenCell.col} * (100% - 20px) / 10)`,
-                  top: `calc(10px + ${tokenCell.row} * (100% - 20px) / 10)`,
-                  width: `calc((100% - 20px) / 10)`,
-                  height: `calc((100% - 20px) / 10)`,
+                  left: `calc(10px + ${tokenCell.col} * ((100% - 56px) / 10 + 4px))`,
+                  top: `calc(10px + ${tokenCell.row} * ((100% - 56px) / 10 + 4px))`,
+                  width: `calc((100% - 56px) / 10)`,
+                  height: `calc((100% - 56px) / 10)`,
                 }}
                 aria-hidden="true"
               >
@@ -259,27 +144,20 @@ export default function BrandboardPage() {
 
           {/* ---------------- side panel ---------------- */}
           <div className="flex flex-col gap-4">
-            {/* daily roll */}
             <div className="rounded-2xl border border-border bg-surface-raised p-5" style={{ boxShadow: "var(--shadow)" }}>
               <h2 className="mb-1 text-[18px]">Your daily roll</h2>
 
-              {!playedToday ? (
+              {!result ? (
                 <>
                   <p className="mb-4 text-[12.5px] text-text-soft">
                     Tonight the genie sleeps on <span className="mono font-bold text-accent-deep">#{start}</span>. Roll
                     and he walks 1–6 squares — the gold squares are where he could land, and
                     he&rsquo;ll keep going if he finds an empty lot.
                   </p>
-                  <div className="mb-4 flex items-center justify-center gap-4">
-                    <span className="text-[56px] leading-none" style={{ color: "var(--accent)" }}>
-                      {PIP_FACES[die]}
-                    </span>
+                  <div className="mb-4 flex items-center justify-center">
+                    <DieFace value={die} size={68} rolling={rolling} />
                   </div>
-                  <button
-                    onClick={roll}
-                    disabled={busy}
-                    className="btn-primary w-full rounded-full py-3 text-[14px] font-semibold"
-                  >
+                  <button onClick={roll} disabled={busy} className="btn-primary w-full rounded-full py-3 text-[14px] font-semibold">
                     {rolling ? "Rolling…" : "🎲 Roll the dice"}
                   </button>
                   <p className="mt-2 text-center text-[11px] text-text-soft">One roll per day. Make it count.</p>
@@ -332,7 +210,6 @@ export default function BrandboardPage() {
               )}
             </div>
 
-            {/* spot bidding */}
             <div className="rounded-2xl border border-border bg-surface-raised p-5" style={{ boxShadow: "var(--shadow)" }}>
               <h2 className="mb-1 text-[18px]">Claim a spot</h2>
               <p className="mb-3 text-[12.5px] text-text-soft">
@@ -354,12 +231,7 @@ export default function BrandboardPage() {
                     <span className="mono text-[15px] font-bold text-accent-deep">#{selected}</span>
                     {selectedMerchant ? (
                       <>
-                        <BrandLogo
-                          id={selectedMerchant.id}
-                          name={selectedMerchant.name}
-                          emoji={selectedMerchant.emoji}
-                          size="sm"
-                        />
+                        <BrandLogo id={selectedMerchant.id} name={selectedMerchant.name} emoji={selectedMerchant.emoji} size="sm" />
                         <Link
                           href={`/brands/${selectedMerchant.id}`}
                           className="min-w-0 flex-1 truncate text-[12.5px] font-semibold hover:underline"
@@ -391,9 +263,7 @@ export default function BrandboardPage() {
                     {selectedSpot ? `Outbid for #${selected} · ₹${nextSpotPrice}` : `Claim #${selected} · ₹${nextSpotPrice}`}
                   </button>
                   {(wallets[activeMerchantId] ?? 0) < nextSpotPrice && (
-                    <p className="mt-1.5 text-center text-[10.5px] text-warn">
-                      Top up credits above to afford this.
-                    </p>
+                    <p className="mt-1.5 text-center text-[10.5px] text-warn">Top up credits above to afford this.</p>
                   )}
                 </div>
               )}
