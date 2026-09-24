@@ -289,6 +289,13 @@ export const INITIAL_WALLETS: Record<string, number> = Object.fromEntries(
   BRANDS.map((b, i) => [b.id, 100 + (i % 5) * 100])
 );
 
+// Love is a demand signal from customers, deliberately uncorrelated with how
+// much stock a brand is giving away — otherwise "most loved" and "most
+// generous" would be the same leaderboard twice.
+export const INITIAL_LOVES: Record<string, number> = Object.fromEntries(
+  BRANDS.map((b, i) => [b.id, 18 + ((i * 47) % 214)])
+);
+
 export const MAX_BRANDS_DISPLAYED = 100;
 
 export const INITIAL_WISHES: Wish[] = [
@@ -374,6 +381,53 @@ export const INITIAL_WISHES: Wish[] = [
     claimPrice: 0,
     createdAtISO: hoursAgo(8),
     upvotes: 44,
+  },
+  {
+    id: "w-9",
+    customerName: "Ishaan",
+    category: "Entertainment",
+    text: "a birthday movie night for my hostel friends",
+    status: "fulfilled",
+    claimPrice: 300,
+    claimedByMerchantId: "cinemax",
+    fulfilledRewardLabel: "Buy 1 get 1 movie ticket",
+    createdAtISO: daysAgo(6),
+    upvotes: 38,
+  },
+  {
+    id: "w-10",
+    customerName: "Nisha",
+    category: "Fitness",
+    text: "a month of classes to get back into shape after an injury",
+    status: "fulfilled",
+    claimPrice: 200,
+    claimedByMerchantId: "fitzone",
+    fulfilledRewardLabel: "Free 1-day gym pass",
+    createdAtISO: daysAgo(5),
+    upvotes: 26,
+  },
+  {
+    id: "w-11",
+    customerName: "Faisal",
+    category: "Food & Beverage",
+    text: "a proper filter coffee for my dad who just moved to the city",
+    status: "fulfilled",
+    claimPrice: 400,
+    claimedByMerchantId: "third-wave",
+    fulfilledRewardLabel: "Free filter coffee",
+    createdAtISO: daysAgo(4),
+    upvotes: 51,
+  },
+  {
+    id: "w-12",
+    customerName: "Tara",
+    category: "Shopping",
+    text: "something nice to wear to my first job interview",
+    status: "claimed",
+    claimPrice: 200,
+    claimedByMerchantId: "urban-threads",
+    createdAtISO: hoursAgo(16),
+    upvotes: 29,
   },
 ];
 

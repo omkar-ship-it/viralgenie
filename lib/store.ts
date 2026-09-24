@@ -9,6 +9,7 @@ import {
   INITIAL_STOCK,
   INITIAL_WISHES,
   INITIAL_WALLETS,
+  INITIAL_LOVES,
   WISH_BASE_PRICE,
   WISH_INCREMENT,
   WISH_PACK_SINGLE,
@@ -33,6 +34,7 @@ type State = {
   wallets: Record<string, number>;
   wishWarEvents: WishWarEvent[];
   wins: WinRecord[];
+  loves: Record<string, number>;
   totalPlaysThisWeek: number;
   activeMerchantId: string;
 
@@ -44,6 +46,7 @@ type State = {
   fulfillWish: (wishId: string, merchantId: string, rewardLabel: string) => { ok: boolean; message: string };
   addWish: (customerName: string, category: string, text: string) => void;
   upvoteWish: (wishId: string) => void;
+  loveBrand: (merchantId: string) => void;
   addStock: (rewardId: string, qty: number) => void;
   playGame: (podId: string) => { rewardId: string; rewardLabel: string; merchantId: string; redemptionCode: string } | null;
   redeemWin: (winId: string) => void;
@@ -58,6 +61,7 @@ export const useAppStore = create<State>()(
       wallets: INITIAL_WALLETS,
       wishWarEvents: [],
       wins: [],
+      loves: INITIAL_LOVES,
       totalPlaysThisWeek: 0,
       activeMerchantId: MERCHANTS[0].id,
 
@@ -146,6 +150,10 @@ export const useAppStore = create<State>()(
         }));
       },
 
+      loveBrand: (merchantId) => {
+        set((s) => ({ loves: { ...s.loves, [merchantId]: (s.loves[merchantId] ?? 0) + 1 } }));
+      },
+
       addStock: (rewardId, qty) => {
         set((s) => ({ stock: { ...s.stock, [rewardId]: (s.stock[rewardId] ?? 0) + qty } }));
       },
@@ -194,7 +202,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v4",
+      name: "viralgenie-store-v5",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({
@@ -203,6 +211,7 @@ export const useAppStore = create<State>()(
         wallets: s.wallets,
         wishWarEvents: s.wishWarEvents,
         wins: s.wins,
+        loves: s.loves,
         totalPlaysThisWeek: s.totalPlaysThisWeek,
         activeMerchantId: s.activeMerchantId,
       }),

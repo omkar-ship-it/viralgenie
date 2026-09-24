@@ -1,10 +1,53 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAppStore, useHasHydrated, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
 import { MAX_BRANDS_DISPLAYED, CATEGORIES } from "@/lib/data";
 import { BrandGrid } from "@/components/app/BrandGrid";
+import { BrandTabs } from "@/components/app/BrandTabs";
+import { BrandLogo } from "@/components/app/BrandLogo";
+import { LoveButton } from "@/components/app/LoveButton";
+import { PODS } from "@/lib/store";
+
+/** Cross-sell into the leaderboards, and the first place to give love. */
+function MostLovedStrip({ category }: { category: string | null }) {
+  const loves = useAppStore((s) => s.loves);
+
+  const top = MERCHANTS.map((m) => ({
+    merchant: m,
+    category: PODS.find((p) => p.id === m.podId)!.category,
+    loves: loves[m.id] ?? 0,
+  }))
+    .filter((b) => !category || b.category === category)
+    .sort((a, b) => b.loves - a.loves)
+    .slice(0, 3);
+
+  return (
+    <div className="mb-8">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <h2 className="text-[17px]">❤️ Most loved right now</h2>
+        <Link href="/brands/leaderboard" className="text-[12.5px] font-semibold text-accent-deep underline">
+          All leaderboards →
+        </Link>
+      </div>
+      <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))" }}>
+        {top.map(({ merchant, loves: count }, i) => (
+          <div key={merchant.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface-raised px-4 py-3">
+            <span className="text-[18px]">{["🥇", "🥈", "🥉"][i]}</span>
+            <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="sm" />
+            <Link href={`/brands/${merchant.id}`} className="min-w-0 flex-1 truncate text-[13px] font-semibold hover:underline">
+              {merchant.name}
+            </Link>
+            <LoveButton brandId={merchant.id} size="sm" />
+            <span className="sr-only">{count} love</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function BrandsContent() {
   const hydrated = useHasHydrated();
@@ -61,6 +104,12 @@ function BrandsContent() {
         </div>
 
         <div className="mt-9 mb-8">
+          <BrandTabs />
+        </div>
+
+        <MostLovedStrip category={category} />
+
+        <div className="mb-8">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}

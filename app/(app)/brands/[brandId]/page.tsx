@@ -7,6 +7,7 @@ import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/li
 import { CATEGORY_ACCENT, CATEGORY_ICON, WISH_PACK_SINGLE, WISH_PACK_BULK } from "@/lib/data";
 import { BrandLogo } from "@/components/app/BrandLogo";
 import { WishBidButton } from "@/components/app/WishBidding";
+import { LoveButton } from "@/components/app/LoveButton";
 
 function timeAgo(iso: string) {
   const hrs = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
@@ -20,6 +21,7 @@ export default function BrandProfilePage() {
   const hydrated = useHasHydrated();
   const stock = useAppStore((s) => s.stock);
   const wallets = useAppStore((s) => s.wallets);
+  const loves = useAppStore((s) => s.loves);
   const wishes = useAppStore((s) => s.wishes);
   const topUpWallet = useAppStore((s) => s.topUpWallet);
 
@@ -80,9 +82,12 @@ export default function BrandProfilePage() {
               <span className="text-text-soft">{pod.name}</span>
             </div>
           </div>
-          <Link href={`/play/${pod.id}`} className="btn-primary rounded-full px-5 py-2.5 text-[13px] font-semibold">
-            🎮 Play this pod
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <LoveButton brandId={brand.id} size="lg" />
+            <Link href={`/play/${pod.id}`} className="btn-primary rounded-full px-5 py-2.5 text-[13px] font-semibold">
+              🎮 Play this pod
+            </Link>
+          </div>
         </div>
 
         <div className="mb-10 grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))" }}>
@@ -91,8 +96,10 @@ export default function BrandProfilePage() {
             <div className="mt-1 text-[11px] tracking-wide text-text-soft uppercase">Prizes live</div>
           </div>
           <div className="glass rounded-2xl px-5 py-4">
-            <div className="stat-num text-[26px] text-accent-deep">{rewards.length}</div>
-            <div className="mt-1 text-[11px] tracking-wide text-text-soft uppercase">Rewards offered</div>
+            <div className="stat-num text-[26px]" style={{ color: "var(--cat-beauty)" }}>
+              {(loves[brand.id] ?? 0).toLocaleString("en-IN")}
+            </div>
+            <div className="mt-1 text-[11px] tracking-wide text-text-soft uppercase">Love received</div>
           </div>
           <div className="glass rounded-2xl px-5 py-4">
             <div className="stat-num text-[26px] text-accent-deep">{holding.length}</div>
