@@ -69,35 +69,36 @@ function GamesContent() {
       <h2 className="mb-4 flex items-center gap-2 text-[18px]">
         <span className="h-2 w-2 rounded-full bg-good" /> Live now
       </h2>
-      <div className="mb-14 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
-        {pods.flatMap((pod) =>
-          GAME_LIBRARY.map((game) => (
-            <div
-              key={`${pod.id}-${game.id}`}
-              className="flex flex-col gap-2 rounded-2xl border border-border bg-surface-raised p-4"
-              style={{ boxShadow: "var(--shadow)" }}
-            >
-              <div className="flex items-center gap-2">
-                <span className="text-[22px]">{game.icon}</span>
-                <div>
-                  <div className="text-[14px] font-semibold">{game.name}</div>
-                  <div className="text-[11px] text-text-soft">{pod.name}</div>
-                </div>
-                <span className="ml-auto rounded-full bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good">
-                  LIVE
-                </span>
-              </div>
-              <p className="text-[12px] text-text-soft">{game.tagline}</p>
-              <Link
-                href={`/play/${pod.id}?game=${game.id}`}
-                className="mt-1 rounded-full py-2 text-center text-[12.5px] font-semibold text-white"
-                style={{ background: "linear-gradient(120deg, var(--accent), var(--accent-deep))" }}
-              >
-                Play now
-              </Link>
+      <p className="mb-4 -mt-2 text-[12.5px] text-text-soft">
+        {GAME_LIBRARY.length} games, live in every pod — pick one per pod, not one per game.
+      </p>
+      <div className="mb-14 flex flex-col gap-3">
+        {pods.map((pod) => (
+          <div
+            key={pod.id}
+            className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface-raised px-4.5 py-3.5"
+            style={{ boxShadow: "var(--shadow)" }}
+          >
+            <div className="mr-1 min-w-[150px]">
+              <div className="text-[14px] font-semibold">{pod.name}</div>
+              <div className="text-[11px] text-text-soft">{pod.category}</div>
             </div>
-          ))
-        )}
+            <div className="flex flex-1 flex-wrap gap-2">
+              {GAME_LIBRARY.map((game) => (
+                <Link
+                  key={game.id}
+                  href={`/play/${pod.id}?game=${game.id}`}
+                  title={game.tagline}
+                  className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-[12.5px] font-semibold transition-colors hover:border-accent hover:text-accent-deep"
+                >
+                  <span>{game.icon}</span>
+                  {game.name}
+                </Link>
+              ))}
+            </div>
+            <span className="rounded-full bg-good-soft px-2 py-0.5 text-[10px] font-bold text-good">LIVE</span>
+          </div>
+        ))}
       </div>
 
       <h2 className="mb-4 flex items-center gap-2 text-[18px]">

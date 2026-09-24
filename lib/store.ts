@@ -43,6 +43,7 @@ type State = {
   claimOrOutbidWish: (wishId: string, merchantId: string) => { ok: boolean; message: string };
   fulfillWish: (wishId: string, merchantId: string, rewardLabel: string) => { ok: boolean; message: string };
   addWish: (customerName: string, category: string, text: string) => void;
+  upvoteWish: (wishId: string) => void;
   addStock: (rewardId: string, qty: number) => void;
   playGame: (podId: string) => { rewardId: string; rewardLabel: string; merchantId: string; redemptionCode: string } | null;
   redeemWin: (winId: string) => void;
@@ -132,9 +133,16 @@ export const useAppStore = create<State>()(
               status: "open",
               claimPrice: 0,
               createdAtISO: new Date().toISOString(),
+              upvotes: 0,
             },
             ...s.wishes,
           ],
+        }));
+      },
+
+      upvoteWish: (wishId) => {
+        set((s) => ({
+          wishes: s.wishes.map((w) => (w.id === wishId ? { ...w, upvotes: w.upvotes + 1 } : w)),
         }));
       },
 
@@ -186,7 +194,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v2",
+      name: "viralgenie-store-v3",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({

@@ -34,6 +34,7 @@ export type Wish = {
   claimedByMerchantId?: string;
   fulfilledRewardLabel?: string;
   createdAtISO: string;
+  upvotes: number;
 };
 
 export type WishWarEvent = {
@@ -66,9 +67,30 @@ export const PODS: Pod[] = [
   { id: "diners-hsr", name: "Diners · HSR Layout", category: "Food & Beverage", area: "HSR Layout", accent: "cat-food" },
   { id: "salons-indiranagar", name: "Salons · Indiranagar", category: "Beauty & Wellness", area: "Indiranagar", accent: "cat-beauty" },
   { id: "gyms-btm", name: "Gyms · BTM Layout", category: "Fitness", area: "BTM Layout", accent: "cat-fitness" },
+  { id: "boutiques-jayanagar", name: "Boutiques · Jayanagar", category: "Shopping", area: "Jayanagar", accent: "cat-shopping" },
+  { id: "fun-whitefield", name: "Cinemas & Fun · Whitefield", category: "Entertainment", area: "Whitefield", accent: "cat-entertainment" },
+  { id: "travel-marathahalli", name: "Travel Desk · Marathahalli", category: "Travel", area: "Marathahalli", accent: "cat-travel" },
 ];
 
 export const CATEGORIES = Array.from(new Set(PODS.map((p) => p.category)));
+
+export const CATEGORY_ICON: Record<string, string> = {
+  "Food & Beverage": "☕",
+  "Beauty & Wellness": "💆",
+  Fitness: "🏋️",
+  Shopping: "🛍️",
+  Entertainment: "🎬",
+  Travel: "✈️",
+};
+
+export const CATEGORY_ACCENT: Record<string, string> = {
+  "Food & Beverage": "cat-food",
+  "Beauty & Wellness": "cat-beauty",
+  Fitness: "cat-fitness",
+  Shopping: "cat-shopping",
+  Entertainment: "cat-entertainment",
+  Travel: "cat-travel",
+};
 
 export const MERCHANTS: Merchant[] = [
   { id: "third-wave", podId: "cafes-koramangala", name: "Third Wave Coffee", emoji: "☕" },
@@ -79,6 +101,9 @@ export const MERCHANTS: Merchant[] = [
   { id: "glow-salon", podId: "salons-indiranagar", name: "Glow Salon & Spa", emoji: "💇" },
   { id: "bliss-studio", podId: "salons-indiranagar", name: "Bliss Studio", emoji: "💆" },
   { id: "fitzone", podId: "gyms-btm", name: "FitZone", emoji: "🏋️" },
+  { id: "urban-threads", podId: "boutiques-jayanagar", name: "Urban Threads", emoji: "👗" },
+  { id: "cinemax", podId: "fun-whitefield", name: "CineMax Whitefield", emoji: "🎬" },
+  { id: "wanderwell", podId: "travel-marathahalli", name: "WanderWell Travels", emoji: "✈️" },
 ];
 
 export const REWARD_ITEMS: RewardItem[] = [
@@ -92,6 +117,12 @@ export const REWARD_ITEMS: RewardItem[] = [
   { id: "r-facial", merchantId: "bliss-studio", podId: "salons-indiranagar", label: "Free express facial", icon: "🧖", totalStock: 12 },
   { id: "r-daypass", merchantId: "fitzone", podId: "gyms-btm", label: "Free 1-day gym pass", icon: "🎫", totalStock: 40 },
   { id: "r-membership", merchantId: "fitzone", podId: "gyms-btm", label: "20% off annual membership", icon: "💪", totalStock: 10 },
+  { id: "r-off200", merchantId: "urban-threads", podId: "boutiques-jayanagar", label: "₹200 off any purchase", icon: "🛍️", totalStock: 35 },
+  { id: "r-totebag", merchantId: "urban-threads", podId: "boutiques-jayanagar", label: "Free tote with ₹999+", icon: "👜", totalStock: 15 },
+  { id: "r-popcorn", merchantId: "cinemax", podId: "fun-whitefield", label: "Free popcorn combo", icon: "🍿", totalStock: 30 },
+  { id: "r-movie-bogo", merchantId: "cinemax", podId: "fun-whitefield", label: "Buy 1 get 1 movie ticket", icon: "🎟️", totalStock: 20 },
+  { id: "r-cabvoucher", merchantId: "wanderwell", podId: "travel-marathahalli", label: "Free airport cab voucher", icon: "🚕", totalStock: 12 },
+  { id: "r-getaway", merchantId: "wanderwell", podId: "travel-marathahalli", label: "₹500 off a weekend getaway", icon: "🧳", totalStock: 8 },
 ];
 
 export const INITIAL_STOCK: Record<string, number> = {
@@ -105,7 +136,15 @@ export const INITIAL_STOCK: Record<string, number> = {
   "r-facial": 8,
   "r-daypass": 27,
   "r-membership": 6,
+  "r-off200": 24,
+  "r-totebag": 9,
+  "r-popcorn": 21,
+  "r-movie-bogo": 12,
+  "r-cabvoucher": 5,
+  "r-getaway": 3,
 };
+
+export const MAX_BRANDS_DISPLAYED = 100;
 
 export const INITIAL_WISHES: Wish[] = [
   {
@@ -117,6 +156,7 @@ export const INITIAL_WISHES: Wish[] = [
     claimPrice: 100,
     claimedByMerchantId: "third-wave",
     createdAtISO: daysAgo(1),
+    upvotes: 14,
   },
   {
     id: "w-2",
@@ -126,6 +166,7 @@ export const INITIAL_WISHES: Wish[] = [
     status: "open",
     claimPrice: 0,
     createdAtISO: hoursAgo(12),
+    upvotes: 6,
   },
   {
     id: "w-3",
@@ -137,6 +178,7 @@ export const INITIAL_WISHES: Wish[] = [
     claimedByMerchantId: "glow-salon",
     fulfilledRewardLabel: "Free haircut + blow-dry",
     createdAtISO: daysAgo(3),
+    upvotes: 22,
   },
   {
     id: "w-4",
@@ -146,6 +188,37 @@ export const INITIAL_WISHES: Wish[] = [
     status: "open",
     claimPrice: 0,
     createdAtISO: hoursAgo(5),
+    upvotes: 9,
+  },
+  {
+    id: "w-5",
+    customerName: "Meera",
+    category: "Shopping",
+    text: "a festive outfit for Diwali on a student budget",
+    status: "open",
+    claimPrice: 0,
+    createdAtISO: hoursAgo(20),
+    upvotes: 31,
+  },
+  {
+    id: "w-6",
+    customerName: "Rohit",
+    category: "Entertainment",
+    text: "movie tickets for my daughter's birthday weekend",
+    status: "open",
+    claimPrice: 0,
+    createdAtISO: hoursAgo(3),
+    upvotes: 4,
+  },
+  {
+    id: "w-7",
+    customerName: "Sana",
+    category: "Travel",
+    text: "a cheap weekend getaway before my exams start",
+    status: "open",
+    claimPrice: 0,
+    createdAtISO: hoursAgo(30),
+    upvotes: 17,
   },
 ];
 
@@ -158,6 +231,9 @@ export const INITIAL_WALLETS: Record<string, number> = {
   "glow-salon": 200,
   "bliss-studio": 300,
   fitzone: 400,
+  "urban-threads": 300,
+  cinemax: 500,
+  wanderwell: 200,
 };
 
 // --- Wish pricing (the only place money moves, per outbid.lol) ---
@@ -198,6 +274,10 @@ export function nextWeekday(targetDay: number, hour: number): Date {
 
 export const COMMUNITY_UNLOCK_TARGET = 25;
 
+// Roster chosen from the mechanics that actually move engagement numbers in
+// live loyalty apps — spin wheel, scratch card, slot reels and mystery box
+// are the four instant-win formats every major platform (CRED, Zomato,
+// Starbucks Rewards) converges on; dice is the odd-one-out for variance.
 export const GAME_LIBRARY = [
   {
     id: "rub-the-lamp",
@@ -211,6 +291,27 @@ export const GAME_LIBRARY = [
     name: "Roll the Dice",
     icon: "🎲",
     tagline: "Higher variance — snake eyes doubles your prize.",
+    kind: "always-live" as const,
+  },
+  {
+    id: "scratch-win",
+    name: "Scratch & Win",
+    icon: "🪙",
+    tagline: "Scratch three panels to reveal your prize.",
+    kind: "always-live" as const,
+  },
+  {
+    id: "mystery-box",
+    name: "Mystery Box",
+    icon: "🎁",
+    tagline: "Pick one of three boxes — no peeking.",
+    kind: "always-live" as const,
+  },
+  {
+    id: "lucky-reels",
+    name: "Lucky Reels",
+    icon: "🎰",
+    tagline: "Three reels, one pull, instant reveal.",
     kind: "always-live" as const,
   },
 ];

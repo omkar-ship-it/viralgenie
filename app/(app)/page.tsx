@@ -4,17 +4,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
-
-const ACCENT: Record<string, string> = {
-  "Food & Beverage": "cat-food",
-  "Beauty & Wellness": "cat-beauty",
-  Fitness: "cat-fitness",
-};
-const ACCENT_SOFT: Record<string, string> = {
-  "Food & Beverage": "cat-food-soft",
-  "Beauty & Wellness": "cat-beauty-soft",
-  Fitness: "cat-fitness-soft",
-};
+import { CATEGORIES, CATEGORY_ICON, CATEGORY_ACCENT } from "@/lib/data";
+import { BrandWall } from "@/components/app/BrandWall";
 
 function merchantById(id: string) {
   return MERCHANTS.find((m) => m.id === id)!;
@@ -24,27 +15,21 @@ function PodSection({ podId, name, area, category }: { podId: string; name: stri
   const stock = useAppStore((s) => s.stock);
   const rewards = REWARD_ITEMS.filter((r) => r.podId === podId);
   const totalPrizes = rewards.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
-  const accent = ACCENT[category];
-  const accentSoft = ACCENT_SOFT[category];
+  const accent = CATEGORY_ACCENT[category];
+  const accentSoft = `${accent}-soft`;
 
   return (
-    <section className="mb-14">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-10">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="mb-1 flex items-center gap-2">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: `var(--${accent})` }}
-            />
-            <h2 className="text-[22px]">{name}</h2>
-          </div>
-          <p className="text-[13.5px] text-text-soft">
+          <h3 className="text-[16.5px] font-semibold">{name}</h3>
+          <p className="text-[12.5px] text-text-soft">
             {totalPrizes} prizes live across {rewards.length} reward{rewards.length === 1 ? "" : "s"} · {area}
           </p>
         </div>
         <Link
           href={`/play/${podId}`}
-          className="rounded-full px-5 py-2.5 text-[13px] font-semibold text-white transition-transform hover:scale-[1.03]"
+          className="rounded-full px-4.5 py-2 text-[12.5px] font-semibold text-white transition-transform hover:scale-[1.03]"
           style={{ background: "linear-gradient(120deg, var(--accent), var(--accent-deep))", boxShadow: "var(--shadow)" }}
         >
           Play this pod ✨
@@ -101,6 +86,29 @@ function PodSection({ podId, name, area, category }: { podId: string; name: stri
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function CategorySection({ category }: { category: string }) {
+  const pods = PODS.filter((p) => p.category === category);
+  const accent = CATEGORY_ACCENT[category];
+
+  return (
+    <section className="mb-16">
+      <div className="mb-5 flex items-center gap-2.5 border-b border-border pb-3">
+        <span className="text-[20px]">{CATEGORY_ICON[category]}</span>
+        <h2 className="text-[22px]">{category}</h2>
+        <span
+          className="ml-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white"
+          style={{ background: `var(--${accent})` }}
+        >
+          {pods.length} pod{pods.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      {pods.map((pod) => (
+        <PodSection key={pod.id} podId={pod.id} name={pod.name} area={pod.area} category={pod.category} />
+      ))}
     </section>
   );
 }
@@ -115,7 +123,7 @@ function RewardPoolContent() {
     return <div className="mx-auto max-w-[1180px] px-6 py-16 text-text-soft">Loading the reward pool…</div>;
   }
 
-  const pods = category ? PODS.filter((p) => p.category === category) : PODS;
+  const categories = category ? CATEGORIES.filter((c) => c === category) : CATEGORIES;
   const totalLive = REWARD_ITEMS.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
 
   return (
@@ -126,7 +134,7 @@ function RewardPoolContent() {
       <h1 className="mb-3 max-w-[26ch] text-[clamp(28px,4vw,42px)]">
         {totalLive} prizes up for grabs right now
       </h1>
-      <p className="mb-12 max-w-[64ch] text-[15px] text-text-soft">
+      <p className="mb-10 max-w-[64ch] text-[15px] text-text-soft">
         Every game here runs on fair, equal odds — no merchant can buy a better chance of
         winning. The only place money changes hands is{" "}
         <Link href="/wishes" className="text-accent-deep underline">
@@ -135,8 +143,10 @@ function RewardPoolContent() {
         , where brands bid to grant what customers actually asked for.
       </p>
 
-      {pods.map((pod) => (
-        <PodSection key={pod.id} podId={pod.id} name={pod.name} area={pod.area} category={pod.category} />
+      <BrandWall categoryFilter={category} />
+
+      {categories.map((c) => (
+        <CategorySection key={c} category={c} />
       ))}
     </div>
   );

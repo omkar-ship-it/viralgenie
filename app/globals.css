@@ -21,6 +21,12 @@
   --cat-beauty-soft: #fbdeeb;
   --cat-fitness: #0f8b6c;
   --cat-fitness-soft: #dcf3ec;
+  --cat-shopping: #2354a6;
+  --cat-shopping-soft: #dce6fa;
+  --cat-entertainment: #a6237e;
+  --cat-entertainment-soft: #f8dcef;
+  --cat-travel: #1789a6;
+  --cat-travel-soft: #daf2f7;
   --shadow: 0 18px 40px -22px rgba(59, 31, 122, 0.35);
 }
 
@@ -46,6 +52,12 @@
     --cat-beauty-soft: #3a1c2b;
     --cat-fitness: #3ddbb0;
     --cat-fitness-soft: #10352c;
+    --cat-shopping: #6fa0ff;
+    --cat-shopping-soft: #17233d;
+    --cat-entertainment: #ff7fd1;
+    --cat-entertainment-soft: #3a1730;
+    --cat-travel: #5fd3f0;
+    --cat-travel-soft: #123138;
     --shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.55);
   }
 }
@@ -71,6 +83,12 @@
   --color-cat-beauty-soft: var(--cat-beauty-soft);
   --color-cat-fitness: var(--cat-fitness);
   --color-cat-fitness-soft: var(--cat-fitness-soft);
+  --color-cat-shopping: var(--cat-shopping);
+  --color-cat-shopping-soft: var(--cat-shopping-soft);
+  --color-cat-entertainment: var(--cat-entertainment);
+  --color-cat-entertainment-soft: var(--cat-entertainment-soft);
+  --color-cat-travel: var(--cat-travel);
+  --color-cat-travel-soft: var(--cat-travel-soft);
   --font-display: var(--font-fraunces);
   --font-body: var(--font-sora);
   --font-data: var(--font-plex-mono);
@@ -247,11 +265,166 @@ h3 {
 .pop-in {
   animation: pop-in 0.35s ease-out;
 }
+/* ---------- scratch card ---------- */
+.scratch-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.scratch-cell {
+  width: 68px;
+  height: 68px;
+  border-radius: 14px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  cursor: pointer;
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 2px var(--border),
+    var(--shadow);
+  overflow: hidden;
+}
+.scratch-cover {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 18px;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+.scratch-cell.revealed .scratch-cover {
+  opacity: 0;
+  transform: scale(1.3);
+  pointer-events: none;
+}
+
+/* ---------- mystery box ---------- */
+.box-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+.mystery-box {
+  width: 78px;
+  height: 78px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  cursor: pointer;
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 2px var(--border),
+    var(--shadow);
+  transition:
+    transform 0.2s ease,
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.mystery-box:hover {
+  transform: translateY(-3px);
+}
+.mystery-box.picked {
+  animation: box-open 0.5s ease;
+  box-shadow:
+    0 0 0 2px var(--gold),
+    var(--shadow);
+}
+.mystery-box.faded {
+  opacity: 0.35;
+  pointer-events: none;
+}
+@keyframes box-open {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  40% {
+    transform: scale(1.15) rotate(-6deg);
+  }
+  70% {
+    transform: scale(1.1) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* ---------- slot reels ---------- */
+.reels-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+.reel-window {
+  width: 66px;
+  height: 78px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 2px var(--border),
+    var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+.reel-window.spinning {
+  animation: reel-blur 0.12s linear infinite;
+}
+@keyframes reel-blur {
+  0%,
+  100% {
+    filter: blur(0);
+  }
+  50% {
+    filter: blur(2px);
+  }
+}
+
+/* ---------- brand wall (mosaic) ---------- */
+.brand-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 12px;
+  padding: 8px 9px;
+  background: var(--surface-raised);
+  border: 1.5px solid var(--border);
+  transition:
+    transform 0.4s ease,
+    box-shadow 0.4s ease;
+  min-width: 0;
+}
+.brand-tile.spotlight {
+  transform: scale(1.06);
+  box-shadow: var(--shadow);
+  z-index: 1;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dice.rolling {
+  .dice.rolling,
+  .reel-window.spinning {
     animation: none;
   }
   .pop-in {
+    animation: none;
+  }
+  .brand-tile {
+    transition: none;
+  }
+  .mystery-box.picked {
     animation: none;
   }
 }

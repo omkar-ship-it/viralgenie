@@ -7,6 +7,16 @@ import { useAppStore, useHasHydrated, PODS, MERCHANTS } from "@/lib/store";
 import { dailyWindow, GAME_LIBRARY } from "@/lib/data";
 
 const DAILY_PLAYS = 3;
+const REEL_SYMBOLS = ["🍒", "⭐", "💎", "🔔", "🍋", "7️⃣"];
+const SCRATCH_SYMBOLS = ["🍀", "⭐", "💎", "🎉", "🔔"];
+
+const REVEAL_DELAY_MS: Record<string, number> = {
+  "rub-the-lamp": 2600,
+  "roll-the-dice": 900,
+  "lucky-reels": 1400,
+  "mystery-box": 550,
+  "scratch-win": 300,
+};
 
 function playsKey(podId: string) {
   const day = new Date().toISOString().slice(0, 10);
@@ -20,6 +30,10 @@ function readPlaysLeft(podId: string) {
 }
 
 type Outcome = { rewardLabel: string; merchantId: string; redemptionCode: string };
+
+function randomPick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function rollPips() {
   return Array.from({ length: 2 }, () => 1 + Math.floor(Math.random() * 6));
@@ -56,6 +70,81 @@ function DiceFace({ rolling }: { rolling: boolean }) {
   );
 }
 
+function ReelsFace({ spinning }: { spinning: boolean }) {
+  const [symbols, setSymbols] = useState(() => [randomPick(REEL_SYMBOLS), randomPick(REEL_SYMBOLS), randomPick(REEL_SYMBOLS)]);
+
+  useEffect(() => {
+    if (!spinning) return;
+    const id = window.setInterval(() => setSymbols([randomPick(REEL_SYMBOLS), randomPick(REEL_SYMBOLS), randomPick(REEL_SYMBOLS)]), 80);
+    return () => window.clearInterval(id);
+  }, [spinning]);
+
+  return (
+    <div className="reels-row">
+      {symbols.map((sym, i) => (
+        <div key={i} className={`reel-window ${spinning ? "spinning" : ""}`}>
+          {sym}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScratchCard({ onComplete }: { onComplete: () => void }) {
+  const [revealed, setRevealed] = useState<boolean[]>([false, false, false]);
+  const [symbols] = useState(() => [randomPick(SCRATCH_SYMBOLS), randomPick(SCRATCH_SYMBOLS), randomPick(SCRATCH_SYMBOLS)]);
+
+  function scratch(i: number) {
+    if (revealed[i]) return;
+    const next = [...revealed];
+    next[i] = true;
+    setRevealed(next);
+    if (next.every(Boolean)) window.setTimeout(onComplete, 250);
+  }
+
+  return (
+    <div className="scratch-row">
+      {symbols.map((sym, i) => (
+        <button
+          key={i}
+          onClick={() => scratch(i)}
+          className={`scratch-cell ${revealed[i] ? "revealed" : ""}`}
+          aria-label={`Scratch panel ${i + 1}`}
+        >
+          {sym}
+          <span className="scratch-cover">?</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MysteryBoxes({ onPick }: { onPick: () => void }) {
+  const [picked, setPicked] = useState<number | null>(null);
+
+  function pick(i: number) {
+    if (picked !== null) return;
+    setPicked(i);
+    onPick();
+  }
+
+  return (
+    <div className="box-row">
+      {[0, 1, 2].map((i) => (
+        <button
+          key={i}
+          onClick={() => pick(i)}
+          disabled={picked !== null}
+          className={`mystery-box ${picked === i ? "picked" : ""} ${picked !== null && picked !== i ? "faded" : ""}`}
+          aria-label={`Pick box ${i + 1}`}
+        >
+          🎁
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PlayContent() {
   const params = useParams<{ podId: string }>();
   const searchParams = useSearchParams();
@@ -73,6 +162,7 @@ function PlayContent() {
   const [empty, setEmpty] = useState(false);
   const [playsLeft, setPlaysLeft] = useState(() => (pod ? readPlaysLeft(pod.id) : DAILY_PLAYS));
   const [flashLive, setFlashLive] = useState(false);
+  const [roundKey, setRoundKey] = useState(0);
 
   useEffect(() => {
     // Computed post-mount only, so the prerendered shell never bakes in a
@@ -104,10 +194,10 @@ function PlayContent() {
     setEmpty(false);
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const extra = 1080 + Math.floor(Math.random() * 360);
-    rotationRef.current += extra;
-    if (wheelRef.current) {
-      wheelRef.current.style.transform = `rotate(${rotationRef.current}deg)`;
+    if (game.id === "rub-the-lamp") {
+      const extra = 1080 + Math.floor(Math.random() * 360);
+      rotationRef.current += extra;
+      if (wheelRef.current) wheelRef.current.style.transform = `rotate(${rotationRef.current}deg)`;
     }
 
     const draws = flashLive ? 2 : 1;
@@ -127,9 +217,18 @@ function PlayContent() {
         if (outcomes.length === 0) setEmpty(true);
         else setResults(outcomes);
       },
-      reduced ? 0 : game.id === "roll-the-dice" ? 900 : 2600
+      reduced ? 0 : REVEAL_DELAY_MS[game.id] ?? 1000
     );
   }
+
+  function playAgain() {
+    setRoundKey((k) => k + 1);
+    setResults([]);
+    setEmpty(false);
+  }
+
+  const needsGenericButton = game.id === "rub-the-lamp" || game.id === "roll-the-dice" || game.id === "lucky-reels";
+  const roundInProgress = results.length > 0 || empty;
 
   return (
     <div className="mx-auto max-w-[720px] px-6 py-14 text-center">
@@ -150,9 +249,15 @@ function PlayContent() {
       </p>
 
       <div className="mx-auto mb-8 flex flex-col items-center gap-2">
-        {game.id === "roll-the-dice" ? (
-          <DiceFace rolling={spinning} />
-        ) : (
+        {game.id === "roll-the-dice" && <DiceFace rolling={spinning} />}
+        {game.id === "lucky-reels" && <ReelsFace spinning={spinning} />}
+        {game.id === "scratch-win" && !roundInProgress && playsLeft > 0 && (
+          <ScratchCard key={roundKey} onComplete={play} />
+        )}
+        {game.id === "mystery-box" && !roundInProgress && playsLeft > 0 && (
+          <MysteryBoxes key={roundKey} onPick={play} />
+        )}
+        {game.id === "rub-the-lamp" && (
           <div className="relative">
             <div className="wheel-pin" />
             <div className="wheel" ref={wheelRef} style={{ width: 220, height: 220 }}>
@@ -164,14 +269,31 @@ function PlayContent() {
         )}
       </div>
 
-      <button
-        onClick={play}
-        disabled={spinning || playsLeft <= 0}
-        className="rounded-full px-7 py-3 text-[14px] font-semibold text-white disabled:opacity-40"
-        style={{ background: "linear-gradient(120deg, var(--accent), var(--accent-deep))", boxShadow: "var(--shadow)" }}
-      >
-        {spinning ? (game.id === "roll-the-dice" ? "Rolling…" : "Spinning…") : `${game.icon} ${game.id === "roll-the-dice" ? "Roll" : "Rub the Lamp"}`}
-      </button>
+      {needsGenericButton && (
+        <button
+          onClick={play}
+          disabled={spinning || playsLeft <= 0}
+          className="rounded-full px-7 py-3 text-[14px] font-semibold text-white disabled:opacity-40"
+          style={{ background: "linear-gradient(120deg, var(--accent), var(--accent-deep))", boxShadow: "var(--shadow)" }}
+        >
+          {spinning
+            ? game.id === "roll-the-dice"
+              ? "Rolling…"
+              : game.id === "lucky-reels"
+                ? "Pulling…"
+                : "Spinning…"
+            : `${game.icon} ${game.id === "roll-the-dice" ? "Roll" : game.id === "lucky-reels" ? "Pull" : "Rub the Lamp"}`}
+        </button>
+      )}
+      {!needsGenericButton && roundInProgress && (
+        <button
+          onClick={playAgain}
+          disabled={playsLeft <= 0}
+          className="rounded-full border border-border px-6 py-2.5 text-[13px] font-semibold disabled:opacity-40"
+        >
+          Play again
+        </button>
+      )}
 
       <div className="mt-8 min-h-[90px]">
         {empty && (

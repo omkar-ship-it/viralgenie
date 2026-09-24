@@ -1,19 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { CATEGORIES } from "@/lib/data";
-
-const ICONS: Record<string, string> = {
-  "Food & Beverage": "☕",
-  "Beauty & Wellness": "💆",
-  Fitness: "🏋️",
-};
-
-const ACCENT: Record<string, string> = {
-  "Food & Beverage": "cat-food",
-  "Beauty & Wellness": "cat-beauty",
-  Fitness: "cat-fitness",
-};
+import { CATEGORIES, CATEGORY_ICON, CATEGORY_ACCENT } from "@/lib/data";
 
 export function CategoryHeader() {
   const pathname = usePathname();
@@ -45,7 +33,7 @@ export function CategoryHeader() {
         </button>
         {CATEGORIES.map((c) => {
           const isActive = active === c;
-          const accent = ACCENT[c];
+          const accent = CATEGORY_ACCENT[c];
           return (
             <button
               key={c}
@@ -56,7 +44,7 @@ export function CategoryHeader() {
                 color: isActive ? "#fff" : "var(--text-soft)",
               }}
             >
-              <span>{ICONS[c]}</span>
+              <span>{CATEGORY_ICON[c]}</span>
               {c}
             </button>
           );
