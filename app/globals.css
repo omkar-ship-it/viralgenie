@@ -309,6 +309,101 @@ h3 {
   animation: pop-in 0.42s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
+/* ================= brandboard ================= */
+
+.bb-board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  padding: 10px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, var(--surface-sunken), var(--surface-raised));
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow);
+  aspect-ratio: 1;
+}
+.bb-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 9px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.bb-cell:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.bb-cell.open {
+  background: transparent;
+  border-style: dashed;
+}
+.bb-cell.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+.bb-cell.candidate {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent);
+}
+.bb-cell.landed {
+  border-color: var(--good);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 35%, transparent);
+}
+.bb-num {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-family: var(--font-data), monospace;
+  font-size: 8.5px;
+  color: var(--text-soft);
+  opacity: 0.75;
+}
+
+.bb-token {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  pointer-events: none;
+  z-index: 3;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  transition:
+    left 0.24s cubic-bezier(0.34, 1.3, 0.5, 1),
+    top 0.24s cubic-bezier(0.34, 1.3, 0.5, 1);
+}
+.bb-token::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--gold-soft) 55%, transparent), transparent 70%);
+  z-index: -1;
+}
+.bb-token.hopping {
+  animation: bb-hop 0.24s ease-in-out;
+}
+@keyframes bb-hop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-9px) scale(1.14);
+  }
+}
+
 @keyframes love-burst {
   0% {
     transform: scale(1);
@@ -773,7 +868,12 @@ h3 {
     animation: none;
   }
   .podium,
-  .lb-row {
+  .lb-row,
+  .bb-cell {
     transition: none;
+  }
+  .bb-token {
+    transition: none;
+    animation: none;
   }
 }

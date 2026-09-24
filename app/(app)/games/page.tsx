@@ -104,6 +104,31 @@ function GamesContent() {
           odds behind all of them are identical.
         </p>
 
+        <Link
+          href="/brandboard"
+          className="group relative mt-10 flex flex-wrap items-center gap-5 overflow-hidden rounded-2xl p-6 text-white transition-transform hover:-translate-y-1"
+          style={{
+            background: "linear-gradient(120deg, #3B1F7A, #7C3AED 55%, #B8306F)",
+            boxShadow: "var(--shadow-lift)",
+          }}
+        >
+          <span className="absolute -top-10 -right-6 h-36 w-36 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
+          <span className="relative text-[44px] leading-none">🎲</span>
+          <span className="relative min-w-0 flex-1">
+            <span className="mb-1 inline-block rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold">
+              ONCE A DAY
+            </span>
+            <span className="block text-[20px] font-semibold">The Brandboard</span>
+            <span className="block text-[13px] text-white/80">
+              100 spots, one roll. The genie walks the board and stops at a brand — whatever
+              they&rsquo;re giving away is yours.
+            </span>
+          </span>
+          <span className="relative rounded-full bg-white/15 px-4 py-2 text-[13px] font-semibold backdrop-blur-sm">
+            Roll today &rarr;
+          </span>
+        </Link>
+
         <h2 className="mt-12 mb-4 flex items-center gap-2 text-[19px]">
           <span className="h-2 w-2 rounded-full bg-good" /> Live now
         </h2>

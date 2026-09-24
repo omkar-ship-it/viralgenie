@@ -431,6 +431,45 @@ export const INITIAL_WISHES: Wish[] = [
   },
 ];
 
+// --- Brandboard: 100 numbered spots, snakes-and-ladders geometry ---
+export const BRANDBOARD_SPOTS = 100;
+export const SPOT_BASE_PRICE = 100;
+export const SPOT_INCREMENT = 100;
+
+export type Spot = { merchantId: string; price: number };
+
+/**
+ * Seeded deterministically (no Math.random at module scope, which would
+ * desync server and client render). Leaves roughly a third of the board
+ * open so there's something to bid for, and lets some brands hold more
+ * than one square, exactly like holding several listings on outbid.lol.
+ */
+export const INITIAL_SPOTS: Record<number, Spot> = (() => {
+  const spots: Record<number, Spot> = {};
+  for (let square = 1; square <= BRANDBOARD_SPOTS; square++) {
+    if ((square * 7) % 10 >= 7) continue; // ~30% left open
+    const brand = BRANDS[(square * 13) % BRANDS.length];
+    spots[square] = { merchantId: brand.id, price: SPOT_BASE_PRICE + ((square * 17) % 6) * SPOT_INCREMENT };
+  }
+  return spots;
+})();
+
+/** Same square for everyone on a given day — a shared daily ritual. */
+export function genieStartSquare(dayKey: string) {
+  let h = 0;
+  for (let i = 0; i < dayKey.length; i++) h = (h * 31 + dayKey.charCodeAt(i)) % 9973;
+  return (h % BRANDBOARD_SPOTS) + 1;
+}
+
+/** Board is numbered from the bottom-left and snakes, like the real game. */
+export function squareToCell(square: number) {
+  const index = square - 1;
+  const rowFromBottom = Math.floor(index / 10);
+  const withinRow = index % 10;
+  const col = rowFromBottom % 2 === 0 ? withinRow : 9 - withinRow;
+  return { row: 9 - rowFromBottom, col };
+}
+
 // --- Wish pricing (the only place money moves, per outbid.lol) ---
 export const WISH_BASE_PRICE = 100;
 export const WISH_INCREMENT = 100;

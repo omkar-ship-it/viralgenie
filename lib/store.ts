@@ -10,6 +10,9 @@ import {
   INITIAL_WISHES,
   INITIAL_WALLETS,
   INITIAL_LOVES,
+  INITIAL_SPOTS,
+  SPOT_BASE_PRICE,
+  SPOT_INCREMENT,
   WISH_BASE_PRICE,
   WISH_INCREMENT,
   WISH_PACK_SINGLE,
@@ -17,6 +20,7 @@ import {
   type Wish,
   type WishWarEvent,
   type WinRecord,
+  type Spot,
 } from "./data";
 
 function uid(prefix: string) {
@@ -35,6 +39,7 @@ type State = {
   wishWarEvents: WishWarEvent[];
   wins: WinRecord[];
   loves: Record<string, number>;
+  spots: Record<number, Spot>;
   totalPlaysThisWeek: number;
   activeMerchantId: string;
 
@@ -47,6 +52,8 @@ type State = {
   addWish: (customerName: string, category: string, text: string) => void;
   upvoteWish: (wishId: string) => void;
   loveBrand: (merchantId: string) => void;
+  claimSpot: (square: number, merchantId: string) => { ok: boolean; message: string };
+  playBrand: (merchantId: string) => { rewardLabel: string; redemptionCode: string } | null;
   addStock: (rewardId: string, qty: number) => void;
   playGame: (podId: string) => { rewardId: string; rewardLabel: string; merchantId: string; redemptionCode: string } | null;
   redeemWin: (winId: string) => void;
@@ -62,6 +69,7 @@ export const useAppStore = create<State>()(
       wishWarEvents: [],
       wins: [],
       loves: INITIAL_LOVES,
+      spots: INITIAL_SPOTS,
       totalPlaysThisWeek: 0,
       activeMerchantId: MERCHANTS[0].id,
 
@@ -154,6 +162,63 @@ export const useAppStore = create<State>()(
         set((s) => ({ loves: { ...s.loves, [merchantId]: (s.loves[merchantId] ?? 0) + 1 } }));
       },
 
+      claimSpot: (square, merchantId) => {
+        const existing = get().spots[square];
+        if (existing?.merchantId === merchantId) {
+          return { ok: false, message: "You already hold this spot." };
+        }
+        const price = existing ? existing.price + SPOT_INCREMENT : SPOT_BASE_PRICE;
+        const balance = get().wallets[merchantId] ?? 0;
+        if (balance < price) return { ok: false, message: `Not enough credits — ₹${price} needed.` };
+
+        set((s) => ({
+          wallets: { ...s.wallets, [merchantId]: (s.wallets[merchantId] ?? 0) - price },
+          spots: { ...s.spots, [square]: { merchantId, price } },
+        }));
+        return {
+          ok: true,
+          message: existing ? `Took spot #${square} for ₹${price} — bids are final.` : `Claimed spot #${square} for ₹${price}.`,
+        };
+      },
+
+      /** Draw from one specific brand's stock — the Brandboard landing prize. */
+      playBrand: (merchantId) => {
+        const { stock } = get();
+        const available = REWARD_ITEMS.filter((r) => r.merchantId === merchantId && (stock[r.id] ?? 0) > 0);
+        if (available.length === 0) return null;
+
+        const total = available.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
+        let roll = Math.random() * total;
+        let picked = available[available.length - 1];
+        for (const r of available) {
+          roll -= stock[r.id] ?? 0;
+          if (roll <= 0) {
+            picked = r;
+            break;
+          }
+        }
+
+        const code = redemptionCode();
+        set((s) => ({
+          stock: { ...s.stock, [picked.id]: Math.max(0, (s.stock[picked.id] ?? 0) - 1) },
+          wins: [
+            {
+              id: uid("win"),
+              podId: picked.podId,
+              rewardId: picked.id,
+              rewardLabel: picked.label,
+              merchantId,
+              wonAtISO: new Date().toISOString(),
+              redemptionCode: code,
+              redeemed: false,
+            },
+            ...s.wins,
+          ],
+          totalPlaysThisWeek: s.totalPlaysThisWeek + 1,
+        }));
+        return { rewardLabel: picked.label, redemptionCode: code };
+      },
+
       addStock: (rewardId, qty) => {
         set((s) => ({ stock: { ...s.stock, [rewardId]: (s.stock[rewardId] ?? 0) + qty } }));
       },
@@ -202,7 +267,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v5",
+      name: "viralgenie-store-v6",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({
@@ -212,6 +277,7 @@ export const useAppStore = create<State>()(
         wishWarEvents: s.wishWarEvents,
         wins: s.wins,
         loves: s.loves,
+        spots: s.spots,
         totalPlaysThisWeek: s.totalPlaysThisWeek,
         activeMerchantId: s.activeMerchantId,
       }),
