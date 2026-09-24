@@ -22,9 +22,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ViralGenie Marketplace — Concept",
+  title: "ViralGenie",
   description:
-    "A bidding-for-rank reward pool and customer wish marketplace, adapted from outbid.lol into LoyalGenie.",
+    "Merchants bid for rank and sponsor rewards, customers play to win them and post wishes for brands to grant.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
