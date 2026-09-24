@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useAppStore, useHasHydrated, PODS, MERCHANTS } from "@/lib/store";
-
-const CATEGORIES = Array.from(new Set(PODS.map((p) => p.category)));
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useAppStore, useHasHydrated, MERCHANTS } from "@/lib/store";
+import { CATEGORIES } from "@/lib/data";
 
 function timeAgo(iso: string) {
   const ms = Date.now() - new Date(iso).getTime();
@@ -13,9 +13,18 @@ function timeAgo(iso: string) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export default function WishesPage() {
+const CAT_ICON: Record<string, string> = {
+  "Food & Beverage": "☕",
+  "Beauty & Wellness": "💆",
+  Fitness: "🏋️",
+};
+
+function WishesContent() {
   const hydrated = useHasHydrated();
+  const searchParams = useSearchParams();
+  const categoryFilter = searchParams.get("category");
   const wishes = useAppStore((s) => s.wishes);
+  const wishWarEvents = useAppStore((s) => s.wishWarEvents);
   const addWish = useAppStore((s) => s.addWish);
 
   const [name, setName] = useState("");
@@ -23,10 +32,18 @@ export default function WishesPage() {
   const [text, setText] = useState("");
   const [justAdded, setJustAdded] = useState(false);
 
-  const sorted = useMemo(
-    () => [...wishes].sort((a, b) => new Date(b.createdAtISO).getTime() - new Date(a.createdAtISO).getTime()),
-    [wishes]
+  const filtered = useMemo(
+    () => (categoryFilter ? wishes.filter((w) => w.category === categoryFilter) : wishes),
+    [wishes, categoryFilter]
   );
+  const sorted = useMemo(
+    () => [...filtered].sort((a, b) => new Date(b.createdAtISO).getTime() - new Date(a.createdAtISO).getTime()),
+    [filtered]
+  );
+
+  function contestCount(wishId: string) {
+    return new Set(wishWarEvents.filter((e) => e.wishId === wishId).map((e) => e.winnerId)).size;
+  }
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,18 +56,20 @@ export default function WishesPage() {
   }
 
   if (!hydrated) {
-    return <div className="mx-auto max-w-[820px] px-6 py-16 text-text-soft">Loading wishes…</div>;
+    return <div className="mx-auto max-w-[860px] px-6 py-16 text-text-soft">Loading wishes…</div>;
   }
 
   return (
-    <div className="mx-auto max-w-[820px] px-6 py-12">
+    <div className="mx-auto max-w-[860px] px-6 py-12">
       <span className="mb-3 block text-[12px] font-semibold tracking-[0.09em] text-gold uppercase">
         Wishes
       </span>
       <h1 className="mb-3">Ask for what you actually want</h1>
-      <p className="mb-9 max-w-[62ch] text-[15px] text-text-soft">
-        Post a wish and a nearby merchant can grant it directly — no game, no odds, just a
-        brand deciding your ask is worth fulfilling.
+      <p className="mb-9 max-w-[64ch] text-[15px] text-text-soft">
+        Every wish starts at <span className="font-semibold text-text">₹100</span> for a
+        merchant to claim and grant. If more than one brand wants the goodwill, they{" "}
+        <span className="font-semibold text-text">outbid each other</span> for the right to
+        fulfil it — bids are final, exactly like outbid.lol.
       </p>
 
       <form
@@ -73,7 +92,7 @@ export default function WishesPage() {
           >
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {CAT_ICON[c]} {c}
               </option>
             ))}
           </select>
@@ -100,34 +119,65 @@ export default function WishesPage() {
 
       <div className="flex flex-col gap-3">
         {sorted.map((w) => {
-          const merchant = w.fulfilledByMerchantId ? MERCHANTS.find((m) => m.id === w.fulfilledByMerchantId) : null;
+          const claimant = w.claimedByMerchantId ? MERCHANTS.find((m) => m.id === w.claimedByMerchantId) : null;
+          const contests = contestCount(w.id);
           return (
-            <div key={w.id} className="rounded-xl border border-border bg-surface-raised px-4.5 py-3.5">
-              <div className="mb-1 flex items-center gap-2">
+            <div
+              key={w.id}
+              className="overflow-hidden rounded-2xl border bg-surface-raised px-5 py-4"
+              style={{
+                borderColor: w.status === "fulfilled" ? "var(--good)" : w.status === "claimed" ? "var(--gold)" : "var(--border)",
+                boxShadow: "var(--shadow)",
+              }}
+            >
+              <div className="mb-1.5 flex items-center gap-2">
                 <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-surface-sunken text-[11px] font-bold text-accent-deep">
                   {w.customerName.charAt(0).toUpperCase()}
                 </div>
                 <span className="text-[13px] font-semibold">{w.customerName}</span>
                 <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[10.5px] text-text-soft">
-                  {w.category}
+                  {CAT_ICON[w.category]} {w.category}
                 </span>
                 <span className="ml-auto text-[11px] text-text-soft">{timeAgo(w.createdAtISO)}</span>
               </div>
-              <div className="mb-2 text-[14px]">Wish: {w.text}</div>
-              {w.status === "fulfilled" ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-good-soft px-2.5 py-1 text-[11px] font-semibold text-good">
-                  ✓ Granted · {merchant?.name ?? "a merchant"}
+              <div className="mb-3 text-[15px] leading-snug">&ldquo;{w.text}&rdquo;</div>
+
+              {w.status === "fulfilled" && (
+                <div className="flex items-center gap-2 rounded-xl bg-good-soft px-3 py-2 text-[12.5px] font-semibold text-good">
+                  ✓ Granted by {claimant?.name ?? "a merchant"}
                   {w.fulfilledRewardLabel ? ` — ${w.fulfilledRewardLabel}` : ""}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-warn-soft px-2.5 py-1 text-[11px] font-semibold text-warn">
-                  ● Open
-                </span>
+                </div>
+              )}
+              {w.status === "claimed" && (
+                <div
+                  className="flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-[12.5px]"
+                  style={{ background: "var(--gold-soft)", color: "#241705" }}
+                >
+                  <span className="font-semibold">
+                    🔥 {claimant?.emoji} {claimant?.name} is sponsoring this
+                    {contests > 1 ? ` · ${contests} brands have bid` : ""}
+                  </span>
+                  <span className="mono font-bold">₹{w.claimPrice}</span>
+                </div>
+              )}
+              {w.status === "open" && (
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-sunken px-3 py-2 text-[12.5px] text-text-soft">
+                  <span>Open — waiting for a merchant to claim it</span>
+                  <span className="mono font-semibold">from ₹100</span>
+                </div>
               )}
             </div>
           );
         })}
       </div>
     </div>
+  );
+}
+
+export default function WishesPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-[860px] px-6 py-16 text-text-soft">Loading…</div>}>
+      <WishesContent />
+    </Suspense>
   );
 }

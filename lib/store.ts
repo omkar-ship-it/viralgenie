@@ -7,13 +7,14 @@ import {
   MERCHANTS,
   REWARD_ITEMS,
   INITIAL_STOCK,
-  INITIAL_BIDS,
   INITIAL_WISHES,
-  MIN_INCREMENT,
-  MAX_ODDS_SHARE,
-  type Bid,
+  INITIAL_WALLETS,
+  WISH_BASE_PRICE,
+  WISH_INCREMENT,
+  WISH_PACK_SINGLE,
+  WISH_PACK_BULK,
   type Wish,
-  type WarEvent,
+  type WishWarEvent,
   type WinRecord,
 } from "./data";
 
@@ -27,23 +28,23 @@ function redemptionCode() {
 
 type State = {
   _hasHydrated: boolean;
-  bids: Bid[];
   stock: Record<string, number>;
   wishes: Wish[];
-  warEvents: WarEvent[];
+  wallets: Record<string, number>;
+  wishWarEvents: WishWarEvent[];
   wins: WinRecord[];
+  totalPlaysThisWeek: number;
   activeMerchantId: string;
 
   setHasHydrated: (v: boolean) => void;
   setActiveMerchant: (merchantId: string) => void;
 
-  podRanking: (podId: string) => Array<{ merchantId: string; price: number; heldSinceISO: string }>;
-  merchantStock: (merchantId: string) => number;
-  outbid: (podId: string, merchantId: string) => { ok: boolean; message: string };
+  topUpWallet: (merchantId: string, pack: "single" | "bulk") => void;
+  claimOrOutbidWish: (wishId: string, merchantId: string) => { ok: boolean; message: string };
+  fulfillWish: (wishId: string, merchantId: string, rewardLabel: string) => { ok: boolean; message: string };
+  addWish: (customerName: string, category: string, text: string) => void;
   addStock: (rewardId: string, qty: number) => void;
   playGame: (podId: string) => { rewardId: string; rewardLabel: string; merchantId: string; redemptionCode: string } | null;
-  addWish: (customerName: string, category: string, text: string) => void;
-  fulfillWish: (wishId: string, merchantId: string, rewardLabel: string) => void;
   redeemWin: (winId: string) => void;
 };
 
@@ -51,63 +52,90 @@ export const useAppStore = create<State>()(
   persist(
     (set, get) => ({
       _hasHydrated: false,
-      bids: INITIAL_BIDS,
       stock: INITIAL_STOCK,
       wishes: INITIAL_WISHES,
-      warEvents: [],
+      wallets: INITIAL_WALLETS,
+      wishWarEvents: [],
       wins: [],
+      totalPlaysThisWeek: 0,
       activeMerchantId: MERCHANTS[0].id,
 
       setHasHydrated: (v) => set({ _hasHydrated: v }),
       setActiveMerchant: (merchantId) => set({ activeMerchantId: merchantId }),
 
-      podRanking: (podId) => {
-        return get()
-          .bids.filter((b) => b.podId === podId && b.price > 0)
-          .sort((a, b) => b.price - a.price)
-          .map((b) => ({ merchantId: b.merchantId, price: b.price, heldSinceISO: b.heldSinceISO }));
+      topUpWallet: (merchantId, pack) => {
+        const amount = pack === "bulk" ? WISH_PACK_BULK.priceRs : WISH_PACK_SINGLE.priceRs;
+        set((s) => ({ wallets: { ...s.wallets, [merchantId]: (s.wallets[merchantId] ?? 0) + amount } }));
       },
 
-      merchantStock: (merchantId) => {
-        const { stock } = get();
-        return REWARD_ITEMS.filter((r) => r.merchantId === merchantId).reduce(
-          (sum, r) => sum + (stock[r.id] ?? 0),
-          0
-        );
-      },
+      claimOrOutbidWish: (wishId, merchantId) => {
+        const wish = get().wishes.find((w) => w.id === wishId);
+        if (!wish) return { ok: false, message: "That wish no longer exists." };
+        if (wish.status === "fulfilled") return { ok: false, message: "This wish has already been granted." };
+        if (wish.claimedByMerchantId === merchantId) return { ok: false, message: "You already hold this wish." };
 
-      outbid: (podId, merchantId) => {
-        const ranking = get().podRanking(podId);
-        const leader = ranking[0];
-        const currentPrice = leader?.price ?? 0;
-        const nextPrice = Math.max(MIN_INCREMENT, currentPrice + MIN_INCREMENT);
-
-        if (get().merchantStock(merchantId) <= 0) {
-          return { ok: false, message: "Add reward stock before you can hold a rank — an empty pool can't defend #1." };
-        }
-        if (leader?.merchantId === merchantId) {
-          return { ok: false, message: "You already hold #1 in this pod." };
+        const nextPrice = wish.claimPrice === 0 ? WISH_BASE_PRICE : wish.claimPrice + WISH_INCREMENT;
+        const balance = get().wallets[merchantId] ?? 0;
+        if (balance < nextPrice) {
+          return { ok: false, message: `Not enough wish credits — top up (₹${nextPrice} needed).` };
         }
 
+        const previousHolder = wish.claimedByMerchantId ?? null;
         set((s) => ({
-          bids: [
-            ...s.bids.filter((b) => !(b.podId === podId && b.merchantId === merchantId)),
-            { podId, merchantId, price: nextPrice, heldSinceISO: new Date().toISOString() },
-          ],
-          warEvents: [
+          wallets: { ...s.wallets, [merchantId]: s.wallets[merchantId] - nextPrice },
+          wishes: s.wishes.map((w) =>
+            w.id === wishId ? { ...w, status: "claimed", claimPrice: nextPrice, claimedByMerchantId: merchantId } : w
+          ),
+          wishWarEvents: [
             {
-              id: uid("war"),
-              podId,
+              id: uid("wwar"),
+              wishId,
               winnerId: merchantId,
-              loserId: leader?.merchantId ?? null,
+              loserId: previousHolder,
               price: nextPrice,
-              delta: nextPrice - currentPrice,
+              delta: nextPrice - wish.claimPrice,
               atISO: new Date().toISOString(),
             },
-            ...s.warEvents,
-          ].slice(0, 20),
+            ...s.wishWarEvents,
+          ].slice(0, 30),
         }));
-        return { ok: true, message: `You're now #1 at ₹${nextPrice.toLocaleString("en-IN")}.` };
+        return {
+          ok: true,
+          message: previousHolder
+            ? `Outbid it for ₹${nextPrice} — bids are final, just like outbid.lol.`
+            : `Claimed for ₹${nextPrice}.`,
+        };
+      },
+
+      fulfillWish: (wishId, merchantId, rewardLabel) => {
+        const wish = get().wishes.find((w) => w.id === wishId);
+        if (!wish) return { ok: false, message: "That wish no longer exists." };
+        if (wish.claimedByMerchantId !== merchantId) {
+          return { ok: false, message: "Claim this wish before you can fulfil it." };
+        }
+        set((s) => ({
+          wishes: s.wishes.map((w) =>
+            w.id === wishId ? { ...w, status: "fulfilled", fulfilledRewardLabel: rewardLabel } : w
+          ),
+        }));
+        return { ok: true, message: "Granted — the customer's been notified." };
+      },
+
+      addWish: (customerName, category, text) => {
+        set((s) => ({
+          wishes: [
+            {
+              id: uid("wish"),
+              customerName,
+              category,
+              text,
+              status: "open",
+              claimPrice: 0,
+              createdAtISO: new Date().toISOString(),
+            },
+            ...s.wishes,
+          ],
+        }));
       },
 
       addStock: (rewardId, qty) => {
@@ -115,30 +143,17 @@ export const useAppStore = create<State>()(
       },
 
       playGame: (podId) => {
-        const ranking = get().podRanking(podId);
-        const rankedMerchantIds = new Set(ranking.map((r) => r.merchantId));
         const { stock } = get();
-        const podRewards = REWARD_ITEMS.filter(
-          (r) => r.podId === podId && (stock[r.id] ?? 0) > 0 && rankedMerchantIds.has(r.merchantId)
-        );
+        const podRewards = REWARD_ITEMS.filter((r) => r.podId === podId && (stock[r.id] ?? 0) > 0);
         if (podRewards.length === 0) return null;
 
-        const priceByMerchant = new Map(ranking.map((r) => [r.merchantId, r.price]));
-        const totalPrice = ranking.reduce((sum, r) => sum + r.price, 0) || 1;
-
-        const weighted = podRewards.map((r) => {
-          const price = priceByMerchant.get(r.merchantId) ?? 0;
-          const cappedShare = Math.min(MAX_ODDS_SHARE, price / totalPrice);
-          return { reward: r, weight: Math.max(0.02, cappedShare) };
-        });
-
-        const totalWeight = weighted.reduce((sum, w) => sum + w.weight, 0);
-        let roll = Math.random() * totalWeight;
-        let picked = weighted[weighted.length - 1].reward;
-        for (const w of weighted) {
-          roll -= w.weight;
+        const totalStock = podRewards.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
+        let roll = Math.random() * totalStock;
+        let picked = podRewards[podRewards.length - 1];
+        for (const r of podRewards) {
+          roll -= stock[r.id] ?? 0;
           if (roll <= 0) {
-            picked = w.reward;
+            picked = r;
             break;
           }
         }
@@ -155,63 +170,13 @@ export const useAppStore = create<State>()(
           redeemed: false,
         };
 
-        set((s) => {
-          const nextStock = { ...s.stock, [picked.id]: Math.max(0, (s.stock[picked.id] ?? 0) - 1) };
-          const winnerRemainingStock = REWARD_ITEMS.filter((r) => r.merchantId === picked.merchantId).reduce(
-            (sum, r) => sum + (nextStock[r.id] ?? 0),
-            0
-          );
-          const isLeader = ranking[0]?.merchantId === picked.merchantId;
-          const demote = isLeader && winnerRemainingStock <= 0;
-
-          return {
-            stock: nextStock,
-            wins: [win, ...s.wins],
-            bids: demote ? s.bids.filter((b) => !(b.podId === podId && b.merchantId === picked.merchantId)) : s.bids,
-            warEvents: demote
-              ? [
-                  {
-                    id: uid("war"),
-                    podId,
-                    winnerId: "__stockout__",
-                    loserId: picked.merchantId,
-                    price: 0,
-                    delta: 0,
-                    atISO: new Date().toISOString(),
-                  },
-                  ...s.warEvents,
-                ].slice(0, 20)
-              : s.warEvents,
-          };
-        });
+        set((s) => ({
+          stock: { ...s.stock, [picked.id]: Math.max(0, (s.stock[picked.id] ?? 0) - 1) },
+          wins: [win, ...s.wins],
+          totalPlaysThisWeek: s.totalPlaysThisWeek + 1,
+        }));
 
         return { rewardId: picked.id, rewardLabel: picked.label, merchantId: picked.merchantId, redemptionCode: code };
-      },
-
-      addWish: (customerName, category, text) => {
-        set((s) => ({
-          wishes: [
-            {
-              id: uid("wish"),
-              customerName,
-              category,
-              text,
-              status: "open",
-              createdAtISO: new Date().toISOString(),
-            },
-            ...s.wishes,
-          ],
-        }));
-      },
-
-      fulfillWish: (wishId, merchantId, rewardLabel) => {
-        set((s) => ({
-          wishes: s.wishes.map((w) =>
-            w.id === wishId
-              ? { ...w, status: "fulfilled", fulfilledByMerchantId: merchantId, fulfilledRewardLabel: rewardLabel }
-              : w
-          ),
-        }));
       },
 
       redeemWin: (winId) => {
@@ -221,15 +186,16 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v1",
+      name: "viralgenie-store-v2",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({
-        bids: s.bids,
         stock: s.stock,
         wishes: s.wishes,
-        warEvents: s.warEvents,
+        wallets: s.wallets,
+        wishWarEvents: s.wishWarEvents,
         wins: s.wins,
+        totalPlaysThisWeek: s.totalPlaysThisWeek,
         activeMerchantId: s.activeMerchantId,
       }),
     }

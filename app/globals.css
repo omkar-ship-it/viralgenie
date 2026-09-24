@@ -15,6 +15,12 @@
   --good-soft: #e4f5ec;
   --warn: #c2540b;
   --warn-soft: #fbeadd;
+  --cat-food: #b4560f;
+  --cat-food-soft: #fbe6d4;
+  --cat-beauty: #b8306f;
+  --cat-beauty-soft: #fbdeeb;
+  --cat-fitness: #0f8b6c;
+  --cat-fitness-soft: #dcf3ec;
   --shadow: 0 18px 40px -22px rgba(59, 31, 122, 0.35);
 }
 
@@ -34,6 +40,12 @@
     --good-soft: #1b3a2c;
     --warn: #ffa657;
     --warn-soft: #3a2712;
+    --cat-food: #f0a64b;
+    --cat-food-soft: #3a2712;
+    --cat-beauty: #f080b0;
+    --cat-beauty-soft: #3a1c2b;
+    --cat-fitness: #3ddbb0;
+    --cat-fitness-soft: #10352c;
     --shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.55);
   }
 }
@@ -53,6 +65,12 @@
   --color-good-soft: var(--good-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-cat-food: var(--cat-food);
+  --color-cat-food-soft: var(--cat-food-soft);
+  --color-cat-beauty: var(--cat-beauty);
+  --color-cat-beauty-soft: var(--cat-beauty-soft);
+  --color-cat-fitness: var(--cat-fitness);
+  --color-cat-fitness-soft: var(--cat-fitness-soft);
   --font-display: var(--font-fraunces);
   --font-body: var(--font-sora);
   --font-data: var(--font-plex-mono);
@@ -178,4 +196,62 @@ h3 {
 .rank-card-r1 {
   border-color: var(--gold) !important;
   background: linear-gradient(120deg, var(--surface-sunken), var(--surface));
+}
+
+/* ---------- dice game ---------- */
+.dice {
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  background: var(--surface-raised);
+  box-shadow:
+    0 0 0 2px var(--border),
+    var(--shadow);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: 12px;
+  transition: transform 0.5s ease;
+}
+.dice.rolling {
+  animation: dice-shake 0.5s ease-in-out infinite;
+}
+.pip {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin: auto;
+}
+@keyframes dice-shake {
+  0%,
+  100% {
+    transform: rotate(-8deg) scale(1);
+  }
+  50% {
+    transform: rotate(8deg) scale(1.05);
+  }
+}
+
+/* ---------- engaging reveal ---------- */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.pop-in {
+  animation: pop-in 0.35s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dice.rolling {
+    animation: none;
+  }
+  .pop-in {
+    animation: none;
+  }
 }
