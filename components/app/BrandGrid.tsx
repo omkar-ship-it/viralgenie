@@ -34,11 +34,21 @@ function useRankedBrands(): Ranked[] {
     .map((b, i) => ({ ...b, rank: i + 1 }));
 }
 
-function Tile({ brand, spotlight, delay = 0 }: { brand: Ranked; spotlight?: boolean; delay?: number }) {
+function Tile({
+  brand,
+  spotlight,
+  delay = 0,
+  linkTo = "brand",
+}: {
+  brand: Ranked;
+  spotlight?: boolean;
+  delay?: number;
+  linkTo?: "brand" | "play";
+}) {
   const accent = CATEGORY_ACCENT[brand.category];
   return (
     <Link
-      href={`/play/${brand.podId}`}
+      href={linkTo === "brand" ? `/brands/${brand.id}` : `/play/${brand.podId}`}
       className={`brand-tile tile-page ${spotlight ? "spotlight" : ""}`}
       style={{ borderColor: spotlight ? `var(--${accent})` : undefined, animationDelay: `${delay}ms` }}
       title={`${brand.name} · ${brand.category} · ${brand.prizes} prizes live`}
@@ -55,11 +65,21 @@ function Tile({ brand, spotlight, delay = 0 }: { brand: Ranked; spotlight?: bool
   );
 }
 
-export function BrandGrid({ categoryFilter }: { categoryFilter: string | null }) {
+export function BrandGrid({
+  categoryFilter,
+  query = "",
+  linkTo = "brand",
+}: {
+  categoryFilter: string | null;
+  query?: string;
+  linkTo?: "brand" | "play";
+}) {
   const ranked = useRankedBrands();
   const [page, setPage] = useState(0);
 
-  const visiblePool = categoryFilter ? ranked.filter((b) => b.category === categoryFilter) : ranked;
+  const q = query.trim().toLowerCase();
+  const searched = q ? ranked.filter((b) => b.name.toLowerCase().includes(q)) : ranked;
+  const visiblePool = categoryFilter ? searched.filter((b) => b.category === categoryFilter) : searched;
   const pageCount = Math.max(1, Math.ceil(visiblePool.length / PAGE_SIZE));
   const current = page % pageCount;
   const pageBrands = visiblePool.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
@@ -109,14 +129,14 @@ export function BrandGrid({ categoryFilter }: { categoryFilter: string | null })
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(202px, 1fr))" }}
       >
         {pageBrands.map((b, i) => (
-          <Tile key={b.id} brand={b} spotlight={b.rank === 1} delay={i * 22} />
+          <Tile key={b.id} brand={b} spotlight={b.rank === 1} delay={i * 22} linkTo={linkTo} />
         ))}
       </div>
 
       {/* ---- category-wise grids ---- */}
       <div className="flex flex-col gap-8">
         {categories.map((cat) => {
-          const brands = ranked.filter((b) => b.category === cat);
+          const brands = searched.filter((b) => b.category === cat);
           if (brands.length === 0) return null;
           const accent = CATEGORY_ACCENT[cat];
           return (
@@ -136,7 +156,7 @@ export function BrandGrid({ categoryFilter }: { categoryFilter: string | null })
               </div>
               <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(202px, 1fr))" }}>
                 {brands.map((b) => (
-                  <Tile key={b.id} brand={b} />
+                  <Tile key={b.id} brand={b} linkTo={linkTo} />
                 ))}
               </div>
             </div>

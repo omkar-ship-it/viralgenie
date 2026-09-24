@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAppStore, useHasHydrated, MERCHANTS } from "@/lib/store";
 import { CATEGORIES, CATEGORY_ICON, CATEGORY_ACCENT, WISH_BASE_PRICE } from "@/lib/data";
 import { BrandLogo } from "@/components/app/BrandLogo";
+import { BiddingAsPicker, WishBidButton } from "@/components/app/WishBidding";
 
 const VOTED_KEY = "viralgenie-upvoted-wishes";
 
@@ -32,6 +33,7 @@ function WishesContent() {
   const wishWarEvents = useAppStore((s) => s.wishWarEvents);
   const addWish = useAppStore((s) => s.addWish);
   const upvoteWish = useAppStore((s) => s.upvoteWish);
+  const activeMerchantId = useAppStore((s) => s.activeMerchantId);
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState(CATEGORIES[0]);
@@ -143,18 +145,21 @@ function WishesContent() {
           </div>
         </form>
 
-        <div className="mb-4 flex gap-1.5">
-          {(["trending", "newest"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSortBy(s)}
-              className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
-                sortBy === s ? "bg-text text-surface" : "bg-surface-sunken text-text-soft hover:text-text"
-              }`}
-            >
-              {s === "trending" ? "🔥 Trending" : "Newest"}
-            </button>
-          ))}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex gap-1.5">
+            {(["trending", "newest"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSortBy(s)}
+                className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                  sortBy === s ? "bg-text text-surface" : "bg-surface-sunken text-text-soft hover:text-text"
+                }`}
+              >
+                {s === "trending" ? "🔥 Trending" : "Newest"}
+              </button>
+            ))}
+          </div>
+          <BiddingAsPicker compact />
         </div>
 
         <div className="flex flex-col gap-3">
@@ -232,6 +237,12 @@ function WishesContent() {
                     <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-sunken px-3 py-2 text-[12.5px] text-text-soft">
                       <span>Open — waiting for a brand to claim it</span>
                       <span className="mono font-semibold">from ₹{WISH_BASE_PRICE}</span>
+                    </div>
+                  )}
+
+                  {w.status !== "fulfilled" && (
+                    <div className="mt-2.5 flex justify-end">
+                      <WishBidButton wishId={w.id} merchantId={activeMerchantId} size="sm" />
                     </div>
                   )}
                 </div>

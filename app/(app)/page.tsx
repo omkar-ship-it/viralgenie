@@ -4,8 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
-import { CATEGORY_ACCENT, CATEGORY_ICON } from "@/lib/data";
-import { BrandGrid } from "@/components/app/BrandGrid";
+import { CATEGORY_ACCENT, CATEGORY_ICON, MAX_BRANDS_DISPLAYED } from "@/lib/data";
 import { BrandLogo } from "@/components/app/BrandLogo";
 
 function podOf(podId: string) {
@@ -93,6 +92,59 @@ function PrizeCard({ rewardId }: { rewardId: string }) {
   );
 }
 
+/** Teaser row — the full directory now lives on /brands. */
+function BrandStrip({ category }: { category: string | null }) {
+  const stock = useAppStore((s) => s.stock);
+
+  const top = MERCHANTS.map((m) => {
+    const pod = podOf(m.podId);
+    const prizes = REWARD_ITEMS.filter((r) => r.merchantId === m.id).reduce(
+      (sum, r) => sum + (stock[r.id] ?? 0),
+      0
+    );
+    return { merchant: m, pod, prizes };
+  })
+    .filter((b) => !category || b.pod.category === category)
+    .sort((a, b) => b.prizes - a.prizes)
+    .slice(0, 8);
+
+  return (
+    <div className="mb-14">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="text-[19px]">Who&rsquo;s stocking the pool</h2>
+          <p className="text-[12.5px] text-text-soft">
+            {MERCHANTS.length} of {MAX_BRANDS_DISPLAYED} brand spots are filled.
+          </p>
+        </div>
+        <Link href="/brands" className="text-[12.5px] font-semibold text-accent-deep underline">
+          All brands →
+        </Link>
+      </div>
+      <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(202px,1fr))" }}>
+        {top.map(({ merchant, pod, prizes }) => (
+          <Link
+            key={merchant.id}
+            href={`/brands/${merchant.id}`}
+            className="brand-tile"
+            title={`${merchant.name} · ${prizes} prizes live`}
+          >
+            <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="md" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] font-semibold leading-tight">{merchant.name}</span>
+              <span className="mono block text-[10px] text-text-soft">{prizes} live</span>
+            </span>
+            <span
+              className="h-6 w-1 flex-none rounded-full"
+              style={{ background: `var(--${CATEGORY_ACCENT[pod.category]})` }}
+            />
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RewardPoolContent() {
   const hydrated = useHasHydrated();
   const searchParams = useSearchParams();
@@ -162,7 +214,7 @@ function RewardPoolContent() {
       </div>
 
       <div className="relative mx-auto max-w-[1180px] px-6 pb-20">
-        <BrandGrid categoryFilter={category} />
+        <BrandStrip category={category} />
 
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-8">
           <div>

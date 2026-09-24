@@ -10,7 +10,7 @@ export function CategoryHeader() {
   const active = searchParams.get("category") ?? "all";
 
   // Only meaningful on pages that actually filter by category.
-  if (!["/", "/wishes", "/games"].includes(pathname)) return null;
+  if (!["/", "/wishes", "/games", "/brands"].includes(pathname)) return null;
 
   function select(value: string) {
     const params = new URLSearchParams(searchParams.toString());
