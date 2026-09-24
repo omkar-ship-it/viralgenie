@@ -194,7 +194,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v3",
+      name: "viralgenie-store-v4",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({

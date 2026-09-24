@@ -1,115 +1,95 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
-import { CATEGORIES, CATEGORY_ICON, CATEGORY_ACCENT } from "@/lib/data";
-import { BrandWall } from "@/components/app/BrandWall";
+import { CATEGORY_ACCENT, CATEGORY_ICON } from "@/lib/data";
+import { BrandGrid } from "@/components/app/BrandGrid";
+import { BrandLogo } from "@/components/app/BrandLogo";
 
-function merchantById(id: string) {
+function podOf(podId: string) {
+  return PODS.find((p) => p.id === podId)!;
+}
+function merchantOf(id: string) {
   return MERCHANTS.find((m) => m.id === id)!;
 }
 
-function PodSection({ podId, name, area, category }: { podId: string; name: string; area: string; category: string }) {
-  const stock = useAppStore((s) => s.stock);
-  const rewards = REWARD_ITEMS.filter((r) => r.podId === podId);
-  const totalPrizes = rewards.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
-  const accent = CATEGORY_ACCENT[category];
-  const accentSoft = `${accent}-soft`;
-
+function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="mb-10">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h3 className="text-[16.5px] font-semibold">{name}</h3>
-          <p className="text-[12.5px] text-text-soft">
-            {totalPrizes} prizes live across {rewards.length} reward{rewards.length === 1 ? "" : "s"} · {area}
-          </p>
-        </div>
-        <Link
-          href={`/play/${podId}`}
-          className="rounded-full px-4.5 py-2 text-[12.5px] font-semibold text-white transition-transform hover:scale-[1.03]"
-          style={{ background: "linear-gradient(120deg, var(--accent), var(--accent-deep))", boxShadow: "var(--shadow)" }}
-        >
-          Play this pod ✨
-        </Link>
-      </div>
-
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-4">
-        {rewards.map((r) => {
-          const merchant = merchantById(r.merchantId);
-          const remaining = stock[r.id] ?? 0;
-          const pct = (remaining / r.totalStock) * 100;
-          const low = remaining > 0 && pct <= 20;
-          const soldOut = remaining === 0;
-          return (
-            <div
-              key={r.id}
-              className="group relative flex flex-col gap-2.5 overflow-hidden rounded-2xl border bg-surface-raised p-4 transition-transform hover:-translate-y-0.5"
-              style={{
-                borderColor: low ? `var(--${accent})` : "var(--border)",
-                boxShadow: "var(--shadow)",
-                opacity: soldOut ? 0.55 : 1,
-              }}
-            >
-              <div
-                className="absolute -top-6 -right-6 h-16 w-16 rounded-full opacity-60 transition-opacity group-hover:opacity-100"
-                style={{ background: `var(--${accentSoft})` }}
-              />
-              <div className="relative flex items-center gap-2 text-[12px]">
-                <span className="text-[20px] leading-none">{r.icon}</span>
-                {low && !soldOut && (
-                  <span className="ml-auto rounded-full px-2 py-0.5 text-[9.5px] font-bold text-white" style={{ background: `var(--${accent})` }}>
-                    🔥 ALMOST GONE
-                  </span>
-                )}
-                {soldOut && (
-                  <span className="ml-auto rounded-full bg-text-soft px-2 py-0.5 text-[9.5px] font-bold text-surface-raised">
-                    OUT OF STOCK
-                  </span>
-                )}
-              </div>
-              <div className="relative text-[14.5px] font-semibold leading-snug">{r.label}</div>
-              <div className="relative flex items-center gap-1.5 text-[11px] text-text-soft">
-                <span>{merchant.emoji}</span>
-                {merchant.name}
-              </div>
-              <div className="relative mt-auto flex items-center justify-between text-[11px] text-text-soft">
-                <span>{remaining} left</span>
-                <span>of {r.totalStock}</span>
-              </div>
-              <div className="relative h-1.5 overflow-hidden rounded-full bg-surface-sunken">
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `var(--${accent})` }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+    <div className="glass rounded-2xl px-5 py-4">
+      <div className="stat-num text-[30px] text-accent-deep">{value}</div>
+      <div className="mt-1 text-[12px] tracking-wide text-text-soft uppercase">{label}</div>
     </div>
   );
 }
 
-function CategorySection({ category }: { category: string }) {
-  const pods = PODS.filter((p) => p.category === category);
-  const accent = CATEGORY_ACCENT[category];
+function PrizeCard({ rewardId }: { rewardId: string }) {
+  const stock = useAppStore((s) => s.stock);
+  const reward = REWARD_ITEMS.find((r) => r.id === rewardId)!;
+  const pod = podOf(reward.podId);
+  const merchant = merchantOf(reward.merchantId);
+  const accent = CATEGORY_ACCENT[pod.category];
+  const remaining = stock[reward.id] ?? 0;
+  const pct = Math.round((remaining / reward.totalStock) * 100);
+  const low = remaining > 0 && (pct <= 25 || remaining <= 5);
+  const out = remaining === 0;
 
   return (
-    <section className="mb-16">
-      <div className="mb-5 flex items-center gap-2.5 border-b border-border pb-3">
-        <span className="text-[20px]">{CATEGORY_ICON[category]}</span>
-        <h2 className="text-[22px]">{category}</h2>
-        <span
-          className="ml-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white"
-          style={{ background: `var(--${accent})` }}
-        >
-          {pods.length} pod{pods.length === 1 ? "" : "s"}
-        </span>
+    <Link
+      href={`/play/${pod.id}`}
+      className="prize-card flex flex-col gap-3 p-4"
+      style={{ borderColor: low ? `var(--${accent})` : undefined, opacity: out ? 0.5 : 1 }}
+    >
+      <span className="wash" style={{ background: `var(--${accent})` }} />
+
+      <div className="relative flex items-start gap-3">
+        <span className="prize-icon">{reward.icon}</span>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14.5px] leading-snug font-semibold">{reward.label}</div>
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-text-soft">
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full"
+              style={{ background: `var(--${accent})` }}
+            />
+            {pod.category}
+          </div>
+        </div>
+        {low && !out && (
+          <span
+            className="shimmer rounded-full px-2 py-0.5 text-[9px] font-bold text-white"
+            style={{ background: `var(--${accent})` }}
+          >
+            HOT
+          </span>
+        )}
+        {out && (
+          <span className="rounded-full bg-text-soft px-2 py-0.5 text-[9px] font-bold text-surface-raised">
+            GONE
+          </span>
+        )}
       </div>
-      {pods.map((pod) => (
-        <PodSection key={pod.id} podId={pod.id} name={pod.name} area={pod.area} category={pod.category} />
-      ))}
-    </section>
+
+      <div className="relative flex items-center gap-2">
+        <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="sm" />
+        <div className="min-w-0">
+          <div className="truncate text-[12px] font-semibold">{merchant.name}</div>
+          <div className="truncate text-[10.5px] text-text-soft">{pod.area}</div>
+        </div>
+      </div>
+
+      <div className="relative mt-auto">
+        <div className="mb-1 flex items-center justify-between text-[10.5px] text-text-soft">
+          <span className="mono font-semibold" style={{ color: `var(--${accent})` }}>
+            {remaining} left
+          </span>
+          <span className="mono">of {reward.totalStock}</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-sunken">
+          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `var(--${accent})` }} />
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -118,43 +98,109 @@ function RewardPoolContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get("category");
   const stock = useAppStore((s) => s.stock);
+  const wishes = useAppStore((s) => s.wishes);
+  const [sortBy, setSortBy] = useState<"rarest" | "biggest">("rarest");
+
+  const rewards = useMemo(() => {
+    const inCategory = REWARD_ITEMS.filter(
+      (r) => !category || podOf(r.podId).category === category
+    );
+    const withStock = inCategory.map((r) => ({ r, left: stock[r.id] ?? 0 }));
+    withStock.sort((a, b) => {
+      if (a.left === 0 !== (b.left === 0)) return a.left === 0 ? 1 : -1;
+      return sortBy === "rarest" ? a.left - b.left : b.left - a.left;
+    });
+    return withStock.map((x) => x.r);
+  }, [category, stock, sortBy]);
 
   if (!hydrated) {
-    return <div className="mx-auto max-w-[1180px] px-6 py-16 text-text-soft">Loading the reward pool…</div>;
+    return <div className="mx-auto max-w-[1180px] px-6 py-24 text-text-soft">Loading the reward pool…</div>;
   }
 
-  const categories = category ? CATEGORIES.filter((c) => c === category) : CATEGORIES;
   const totalLive = REWARD_ITEMS.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
+  const openWishes = wishes.filter((w) => w.status !== "fulfilled").length;
 
   return (
-    <div className="mx-auto max-w-[1180px] px-6 py-12">
-      <span className="mb-3 block text-[12px] font-semibold tracking-[0.09em] text-gold uppercase">
-        Live reward pool
-      </span>
-      <h1 className="mb-3 max-w-[26ch] text-[clamp(28px,4vw,42px)]">
-        {totalLive} prizes up for grabs right now
-      </h1>
-      <p className="mb-10 max-w-[64ch] text-[15px] text-text-soft">
-        Every game here runs on fair, equal odds — no merchant can buy a better chance of
-        winning. The only place money changes hands is{" "}
-        <Link href="/wishes" className="text-accent-deep underline">
-          Wishes
-        </Link>
-        , where brands bid to grant what customers actually asked for.
-      </p>
+    <div className="relative">
+      <div className="aurora" />
 
-      <BrandWall categoryFilter={category} />
+      <div className="relative mx-auto max-w-[1180px] px-6 pt-14 pb-10">
+        <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-[11.5px] font-semibold tracking-wide text-text-soft uppercase">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-good" />
+          Live reward pool
+        </span>
+        <h1 className="max-w-[18ch] text-[clamp(34px,6vw,64px)] leading-[1.02] font-semibold">
+          {totalLive.toLocaleString("en-IN")} prizes, and none of them are rigged.
+        </h1>
+        <p className="mt-5 max-w-[60ch] text-[16px] text-text-soft">
+          Every game runs on fair odds — a brand&rsquo;s spend can&rsquo;t buy better ones. The
+          only place money moves is{" "}
+          <Link href="/wishes" className="font-semibold text-accent-deep underline decoration-accent/40 underline-offset-2">
+            Wishes
+          </Link>
+          , where brands outbid each other for the right to grant what you asked for.
+        </p>
 
-      {categories.map((c) => (
-        <CategorySection key={c} category={c} />
-      ))}
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/games" className="btn-primary rounded-full px-6 py-3 text-[14px] font-semibold">
+            🎮 Play a game
+          </Link>
+          <Link
+            href="/wishes"
+            className="rounded-full border border-border bg-surface-raised px-6 py-3 text-[14px] font-semibold transition-colors hover:border-accent"
+          >
+            ✨ Make a wish
+          </Link>
+        </div>
+
+        <div className="mt-9 grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))" }}>
+          <Stat value={totalLive.toLocaleString("en-IN")} label="Prizes live" />
+          <Stat value={String(MERCHANTS.length)} label="Brands sponsoring" />
+          <Stat value={String(PODS.length)} label="Neighbourhood pods" />
+          <Stat value={String(openWishes)} label="Wishes open" />
+        </div>
+      </div>
+
+      <div className="relative mx-auto max-w-[1180px] px-6 pb-20">
+        <BrandGrid categoryFilter={category} />
+
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-8">
+          <div>
+            <h2 className="text-[20px]">
+              {category ? `${CATEGORY_ICON[category]} ${category} prizes` : "Every prize on the board"}
+            </h2>
+            <p className="text-[12.5px] text-text-soft">
+              {rewards.length} rewards · one grid, every category, no sorting into silos.
+            </p>
+          </div>
+          <div className="flex gap-1.5">
+            {(["rarest", "biggest"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSortBy(s)}
+                className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold transition-colors ${
+                  sortBy === s ? "bg-text text-surface" : "bg-surface-sunken text-text-soft hover:text-text"
+                }`}
+              >
+                {s === "rarest" ? "🔥 Rarest first" : "Biggest pool"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill,minmax(232px,1fr))" }}>
+          {rewards.map((r) => (
+            <PrizeCard key={r.id} rewardId={r.id} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function RewardPoolPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-[1180px] px-6 py-16 text-text-soft">Loading…</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-[1180px] px-6 py-24 text-text-soft">Loading…</div>}>
       <RewardPoolContent />
     </Suspense>
   );

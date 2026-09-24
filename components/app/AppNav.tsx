@@ -15,19 +15,20 @@ export function AppNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-40 flex items-center justify-between gap-4 border-b border-border bg-surface/90 px-6 py-3.5 backdrop-blur-md">
-      <Link href="/" className="flex items-center gap-2.5 font-semibold">
-        <div
-          className="flex h-[30px] w-[30px] items-center justify-center rounded-[9px] text-[15px]"
+    <nav className="glass sticky top-0 z-40 flex items-center justify-between gap-4 px-6 py-3">
+      <Link href="/" className="flex items-center gap-2.5">
+        <span
+          className="grid h-8 w-8 place-items-center rounded-[10px] text-[16px]"
           style={{
-            background: "linear-gradient(155deg, var(--accent), var(--accent-deep))",
-            boxShadow: "var(--shadow)",
+            background: "linear-gradient(150deg, var(--accent), var(--accent-deep))",
+            boxShadow: "0 8px 18px -8px var(--accent)",
           }}
         >
           ✨
-        </div>
-        <span className="font-display text-[17px]">ViralGenie</span>
+        </span>
+        <span className="font-display text-[18px] font-semibold">ViralGenie</span>
       </Link>
+
       <div className="flex flex-wrap items-center gap-1">
         {LINKS.map((link) => {
           const active = pathname === link.href;
@@ -35,9 +36,17 @@ export function AppNav() {
             <Link
               key={link.href}
               href={link.href}
-              className={`rounded-lg px-3 py-2 text-[13.5px] transition-colors ${
-                active ? "bg-surface-sunken text-text" : "text-text-soft hover:bg-surface-sunken hover:text-text"
+              className={`rounded-full px-3.5 py-2 text-[13px] font-medium transition-colors ${
+                active ? "text-white" : "text-text-soft hover:bg-surface-sunken hover:text-text"
               }`}
+              style={
+                active
+                  ? {
+                      background: "linear-gradient(120deg, var(--accent), var(--accent-deep))",
+                      boxShadow: "0 8px 18px -10px var(--accent)",
+                    }
+                  : undefined
+              }
             >
               {link.label}
             </Link>
@@ -45,7 +54,7 @@ export function AppNav() {
         })}
         <Link
           href="/concept"
-          className="ml-1 rounded-full border border-border px-2.5 py-1 text-[11px] tracking-wide text-text-soft uppercase hover:text-text"
+          className="ml-1 rounded-full border border-border px-2.5 py-1 text-[10.5px] tracking-wide text-text-soft uppercase transition-colors hover:text-text"
         >
           How it works
         </Link>

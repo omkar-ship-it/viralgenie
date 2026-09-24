@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useAppStore, useHasHydrated, MERCHANTS, PODS } from "@/lib/store";
+import { CATEGORY_ACCENT } from "@/lib/data";
+import { BrandLogo } from "@/components/app/BrandLogo";
 
 export default function WalletPage() {
   const hydrated = useHasHydrated();
@@ -8,60 +11,86 @@ export default function WalletPage() {
   const redeemWin = useAppStore((s) => s.redeemWin);
 
   if (!hydrated) {
-    return <div className="mx-auto max-w-[720px] px-6 py-16 text-text-soft">Loading your wallet…</div>;
+    return <div className="mx-auto max-w-[760px] px-6 py-24 text-text-soft">Loading your wallet…</div>;
   }
 
-  return (
-    <div className="mx-auto max-w-[720px] px-6 py-12">
-      <span className="mb-3 block text-[12px] font-semibold tracking-[0.09em] text-gold uppercase">
-        My Rewards
-      </span>
-      <h1 className="mb-3">Everything you&rsquo;ve won</h1>
-      <p className="mb-9 max-w-[62ch] text-[15px] text-text-soft">
-        Show the code at the merchant to redeem. Each code works once.
-      </p>
+  const unredeemed = wins.filter((w) => !w.redeemed).length;
 
-      {wins.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-[13.5px] text-text-soft">
-          Nothing yet — go play a pod to win your first reward.
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {wins.map((w) => {
-            const merchant = MERCHANTS.find((m) => m.id === w.merchantId);
-            const pod = PODS.find((p) => p.id === w.podId);
-            return (
-              <div
-                key={w.id}
-                className={`flex items-center gap-4 rounded-xl border bg-surface-raised px-4.5 py-3.5 ${
-                  w.redeemed ? "border-border opacity-60" : "border-gold"
-                }`}
-              >
-                <span className="text-[22px] leading-none">{merchant?.emoji}</span>
-                <div className="flex-1">
-                  <div className="text-[14px] font-semibold">{w.rewardLabel}</div>
-                  <div className="text-[12px] text-text-soft">
-                    {merchant?.name} · {pod?.name}
+  return (
+    <div className="relative">
+      <div className="aurora" style={{ opacity: 0.3 }} />
+      <div className="relative mx-auto max-w-[760px] px-6 pt-14 pb-20">
+        <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-[11.5px] font-semibold tracking-wide text-text-soft uppercase">
+          My rewards
+        </span>
+        <h1 className="text-[clamp(28px,4.5vw,42px)] leading-[1.05] font-semibold">
+          {wins.length === 0 ? "Nothing in the wallet yet" : `${unredeemed} ready to redeem`}
+        </h1>
+        <p className="mt-3 mb-9 max-w-[56ch] text-[15px] text-text-soft">
+          Show the code at the counter. Each one works exactly once.
+        </p>
+
+        {wins.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border px-6 py-14 text-center">
+            <div className="text-[34px]">🎟️</div>
+            <p className="mt-3 text-[14px] text-text-soft">
+              Win your first prize and it&rsquo;ll land here.
+            </p>
+            <Link href="/games" className="btn-primary mt-5 inline-block rounded-full px-6 py-2.5 text-[13px] font-semibold">
+              Play a game
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {wins.map((w) => {
+              const merchant = MERCHANTS.find((m) => m.id === w.merchantId);
+              const pod = PODS.find((p) => p.id === w.podId);
+              const accent = pod ? CATEGORY_ACCENT[pod.category] : "accent";
+              return (
+                <div
+                  key={w.id}
+                  className="relative flex items-center gap-4 overflow-hidden rounded-2xl border bg-surface-raised px-5 py-4"
+                  style={{
+                    borderColor: w.redeemed ? "var(--border)" : `var(--${accent})`,
+                    boxShadow: "var(--shadow)",
+                    opacity: w.redeemed ? 0.6 : 1,
+                  }}
+                >
+                  <span
+                    className="absolute inset-y-0 left-0 w-1.5"
+                    style={{ background: `var(--${accent})` }}
+                  />
+                  {merchant && (
+                    <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="md" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[15px] font-semibold">{w.rewardLabel}</div>
+                    <div className="truncate text-[12px] text-text-soft">
+                      {merchant?.name} · {pod?.name}
+                    </div>
                   </div>
-                </div>
-                <div className="mono rounded-lg bg-surface-sunken px-3 py-1.5 text-[13px] font-semibold text-accent-deep">
-                  {w.redemptionCode}
-                </div>
-                {w.redeemed ? (
-                  <span className="text-[11.5px] font-semibold text-text-soft">Redeemed</span>
-                ) : (
-                  <button
-                    onClick={() => redeemWin(w.id)}
-                    className="rounded-full border border-border px-3 py-1.5 text-[11.5px] font-semibold hover:bg-surface-sunken"
+                  <div
+                    className="mono rounded-lg border border-dashed px-3 py-2 text-[14px] font-bold"
+                    style={{ borderColor: `var(--${accent})`, color: `var(--${accent})` }}
                   >
-                    Mark redeemed
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                    {w.redemptionCode}
+                  </div>
+                  {w.redeemed ? (
+                    <span className="text-[11.5px] font-semibold text-text-soft">Redeemed</span>
+                  ) : (
+                    <button
+                      onClick={() => redeemWin(w.id)}
+                      className="rounded-full border border-border px-3.5 py-2 text-[11.5px] font-semibold transition-colors hover:border-accent"
+                    >
+                      Mark redeemed
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

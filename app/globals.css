@@ -28,16 +28,18 @@
   --cat-travel: #1789a6;
   --cat-travel-soft: #daf2f7;
   --shadow: 0 18px 40px -22px rgba(59, 31, 122, 0.35);
+  --shadow-lift: 0 26px 60px -28px rgba(59, 31, 122, 0.55);
+  --ring: rgba(124, 58, 237, 0.16);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #140f22;
-    --surface-raised: #1e1733;
+    --surface: #100b1c;
+    --surface-raised: #1b1430;
     --surface-sunken: #241b3d;
     --text: #f1edfb;
     --text-soft: #b3a9ce;
-    --border: #3a2d57;
+    --border: #372a55;
     --accent: #9b6bff;
     --accent-deep: #c9b8ff;
     --gold: #f0b429;
@@ -58,7 +60,9 @@
     --cat-entertainment-soft: #3a1730;
     --cat-travel: #5fd3f0;
     --cat-travel-soft: #123138;
-    --shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.55);
+    --shadow: 0 18px 40px -20px rgba(0, 0, 0, 0.6);
+    --shadow-lift: 0 30px 70px -30px rgba(0, 0, 0, 0.8);
+    --ring: rgba(155, 107, 255, 0.22);
   }
 }
 
@@ -105,6 +109,7 @@ h2,
 h3 {
   font-family: var(--font-display), ui-serif, Georgia, serif;
   text-wrap: balance;
+  letter-spacing: -0.015em;
 }
 
 .mono {
@@ -112,50 +117,219 @@ h3 {
   font-variant-numeric: tabular-nums;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .motion-safe-only {
-    animation: none !important;
-    transition: none !important;
+/* ================= shared visual system ================= */
+
+.aurora {
+  /* pixel offsets, not percentages: percentage insets resolve against the
+     full (very tall) page box and push the whole thing off-screen. */
+  position: absolute;
+  top: -170px;
+  left: -10%;
+  right: -10%;
+  height: 560px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(60px);
+  opacity: 0.55;
+  background:
+    radial-gradient(38% 55% at 18% 40%, var(--accent) 0%, transparent 70%),
+    radial-gradient(32% 48% at 62% 22%, var(--gold-soft) 0%, transparent 70%),
+    radial-gradient(34% 52% at 85% 60%, var(--cat-entertainment) 0%, transparent 70%);
+  animation: aurora-drift 22s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift {
+  0% {
+    transform: translate3d(-2%, 0, 0) scale(1);
   }
-  .wheel {
-    transition: none !important;
+  100% {
+    transform: translate3d(3%, 3%, 0) scale(1.08);
   }
 }
 
-/* ---------- phone mockups ---------- */
-.phone {
-  width: 100%;
-  max-width: 280px;
-  aspect-ratio: 9 / 18.5;
-  background: #150f22;
-  border-radius: 34px;
-  padding: 10px;
-  box-shadow: var(--shadow);
-  position: relative;
+.glass {
+  background: color-mix(in srgb, var(--surface-raised) 78%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
 }
-.phone-notch {
+
+.btn-primary {
+  background: linear-gradient(120deg, var(--accent), var(--accent-deep));
+  color: #fff;
+  box-shadow:
+    0 10px 24px -12px var(--accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    filter 0.18s ease;
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow:
+    0 16px 34px -14px var(--accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+}
+
+/* stat numbers in the hero */
+.stat-num {
+  font-family: var(--font-display), serif;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ================= brand logo marks ================= */
+
+.logo-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 28%;
+  color: #fff;
+  font-weight: 700;
+  font-family: var(--font-body), sans-serif;
+  letter-spacing: -0.02em;
+  flex: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 14px -8px rgba(0, 0, 0, 0.6);
+}
+.logo-mark::after {
+  content: "";
   position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70px;
-  height: 16px;
-  background: #150f22;
-  border-radius: 0 0 12px 12px;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.28), transparent 55%);
+  pointer-events: none;
+}
+.logo-badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+}
+
+/* ================= brand wall tiles ================= */
+
+.brand-tile {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 14px;
+  padding: 9px 10px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  min-width: 0;
+  transition:
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.45s ease,
+    border-color 0.45s ease;
+}
+.brand-tile.spotlight {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: var(--shadow-lift);
   z-index: 2;
 }
-.screen {
-  width: 100%;
-  height: 100%;
-  border-radius: 24px;
-  background: var(--surface-raised);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  font-size: 12.5px;
+.tile-page {
+  animation: tile-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-/* ---------- spin wheel ---------- */
+/* ================= prize cards ================= */
+
+.prize-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+.prize-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+.prize-card .wash {
+  position: absolute;
+  inset: -40% 40% 55% -20%;
+  border-radius: 999px;
+  filter: blur(26px);
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.prize-card:hover .wash {
+  opacity: 0.85;
+}
+.prize-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  font-size: 22px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* ================= reveal / motion ================= */
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 0.42s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -220% 0;
+  }
+  100% {
+    background-position: 220% 0;
+  }
+}
+.shimmer {
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    color-mix(in srgb, var(--gold-soft) 55%, transparent) 50%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 2.4s linear infinite;
+}
+
+/* ================= game: wheel ================= */
+
 .wheel {
   position: relative;
   width: 150px;
@@ -170,23 +344,23 @@ h3 {
     var(--gold) 300deg 360deg
   );
   box-shadow:
-    0 0 0 5px var(--surface-raised),
-    0 0 0 7px var(--border),
-    var(--shadow);
+    0 0 0 6px var(--surface-raised),
+    0 0 0 8px var(--border),
+    0 24px 50px -24px var(--accent);
   transition: transform 2.6s cubic-bezier(0.17, 0.67, 0.16, 1);
 }
 .wheel-pin {
   position: absolute;
-  top: -6px;
+  top: -8px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 12px solid var(--gold);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 14px solid var(--gold);
   z-index: 3;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
 }
 .wheel-hub {
   position: absolute;
@@ -203,20 +377,8 @@ h3 {
   box-shadow: inset 0 0 0 2px var(--border);
 }
 
-/* ---------- misc panel decorations ---------- */
-.reach-fill {
-  background: linear-gradient(90deg, var(--accent), var(--gold));
-}
-.pool-banner {
-  background: linear-gradient(120deg, var(--gold-soft), var(--gold));
-  color: #241705;
-}
-.rank-card-r1 {
-  border-color: var(--gold) !important;
-  background: linear-gradient(120deg, var(--surface-sunken), var(--surface));
-}
+/* ================= game: dice ================= */
 
-/* ---------- dice game ---------- */
 .dice {
   width: 84px;
   height: 84px;
@@ -251,35 +413,22 @@ h3 {
   }
 }
 
-/* ---------- engaging reveal ---------- */
-@keyframes pop-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-.pop-in {
-  animation: pop-in 0.35s ease-out;
-}
-/* ---------- scratch card ---------- */
+/* ================= game: scratch ================= */
+
 .scratch-row {
   display: flex;
   gap: 12px;
   justify-content: center;
 }
 .scratch-cell {
-  width: 68px;
-  height: 68px;
-  border-radius: 14px;
+  width: 74px;
+  height: 74px;
+  border-radius: 16px;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 30px;
   cursor: pointer;
   background: var(--surface-raised);
   box-shadow:
@@ -290,37 +439,39 @@ h3 {
 .scratch-cover {
   position: absolute;
   inset: 0;
-  border-radius: 14px;
-  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border-radius: inherit;
+  background: linear-gradient(135deg, #b9a88a, #8c7a5c 55%, #d8cbb0);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-size: 18px;
+  font-weight: 700;
   transition:
     opacity 0.35s ease,
     transform 0.35s ease;
 }
 .scratch-cell.revealed .scratch-cover {
   opacity: 0;
-  transform: scale(1.3);
+  transform: scale(1.35);
   pointer-events: none;
 }
 
-/* ---------- mystery box ---------- */
+/* ================= game: mystery box ================= */
+
 .box-row {
   display: flex;
   gap: 16px;
   justify-content: center;
 }
 .mystery-box {
-  width: 78px;
-  height: 78px;
-  border-radius: 16px;
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 34px;
   cursor: pointer;
   background: var(--surface-raised);
   box-shadow:
@@ -331,43 +482,47 @@ h3 {
     opacity 0.2s ease,
     box-shadow 0.2s ease;
 }
-.mystery-box:hover {
-  transform: translateY(-3px);
+.mystery-box:hover:not(:disabled) {
+  transform: translateY(-4px);
 }
 .mystery-box.picked {
   animation: box-open 0.5s ease;
   box-shadow:
     0 0 0 2px var(--gold),
-    var(--shadow);
+    var(--shadow-lift);
 }
 .mystery-box.faded {
-  opacity: 0.35;
-  pointer-events: none;
+  opacity: 0.3;
 }
 @keyframes box-open {
   0% {
     transform: scale(1) rotate(0deg);
   }
   40% {
-    transform: scale(1.15) rotate(-6deg);
+    transform: scale(1.18) rotate(-7deg);
   }
   70% {
-    transform: scale(1.1) rotate(4deg);
+    transform: scale(1.1) rotate(5deg);
   }
   100% {
     transform: scale(1) rotate(0deg);
   }
 }
 
-/* ---------- slot reels ---------- */
+/* ================= game: reels ================= */
+
 .reels-row {
   display: flex;
   gap: 10px;
   justify-content: center;
+  padding: 10px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, var(--surface-sunken), var(--surface-raised));
+  box-shadow: inset 0 0 0 1px var(--border);
 }
 .reel-window {
-  width: 66px;
-  height: 78px;
+  width: 68px;
+  height: 82px;
   border-radius: 12px;
   overflow: hidden;
   background: var(--surface-raised);
@@ -377,7 +532,7 @@ h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30px;
+  font-size: 32px;
 }
 .reel-window.spinning {
   animation: reel-blur 0.12s linear infinite;
@@ -388,43 +543,170 @@ h3 {
     filter: blur(0);
   }
   50% {
-    filter: blur(2px);
+    filter: blur(2.5px);
   }
 }
 
-/* ---------- brand wall (mosaic) ---------- */
-.brand-tile {
-  display: flex;
-  flex-direction: column;
+/* ================= game: plinko ================= */
+
+.plinko-board {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  border-radius: 20px;
+  background: linear-gradient(170deg, var(--surface-sunken), var(--surface-raised));
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow);
+  overflow: hidden;
+}
+.peg {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 55%, var(--border));
+  transform: translate(-50%, -50%);
+}
+.plinko-ball {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #fff, var(--gold-soft) 45%, var(--gold));
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%);
+  transition: none;
+}
+.plinko-slot {
+  position: absolute;
+  bottom: 0;
+  height: 22px;
+  border-top: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  color: var(--text-soft);
+}
+
+/* ================= game: timer stop ================= */
+
+.timer-track {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+  overflow: hidden;
+}
+.timer-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--good) 78%, transparent),
+    color-mix(in srgb, var(--good) 52%, transparent)
+  );
+  box-shadow: 0 0 18px -2px var(--good);
+  border-left: 2px solid var(--good);
+  border-right: 2px solid var(--good);
+}
+.timer-marker {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 5px;
+  border-radius: 3px;
+  background: var(--text);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* ================= game: tap rush ================= */
+
+.tap-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 76px);
+  grid-template-rows: repeat(3, 76px);
+  gap: 10px;
   justify-content: center;
-  gap: 3px;
-  border-radius: 12px;
-  padding: 8px 9px;
-  background: var(--surface-raised);
-  border: 1.5px solid var(--border);
+}
+.tap-cell {
+  border-radius: 16px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 30px;
   transition:
-    transform 0.4s ease,
-    box-shadow 0.4s ease;
-  min-width: 0;
+    transform 0.12s ease,
+    background 0.12s ease;
 }
-.brand-tile.spotlight {
-  transform: scale(1.06);
+.tap-cell.active {
+  background: linear-gradient(140deg, var(--accent), var(--accent-deep));
+  box-shadow: 0 12px 26px -12px var(--accent);
+  cursor: pointer;
+  transform: scale(1.04);
+}
+.tap-cell.active:active {
+  transform: scale(0.94);
+}
+
+/* ================= game: memory match ================= */
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 78px);
+  gap: 10px;
+  justify-content: center;
+}
+.memory-card {
+  height: 92px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  cursor: pointer;
+  background: linear-gradient(140deg, var(--accent), var(--accent-deep));
+  color: transparent;
   box-shadow: var(--shadow);
-  z-index: 1;
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    color 0.05s linear 0.12s;
 }
+.memory-card.flipped,
+.memory-card.matched {
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 2px var(--border);
+  color: inherit;
+  transform: rotateY(180deg) scaleX(-1);
+}
+.memory-card.matched {
+  box-shadow: inset 0 0 0 2px var(--good);
+}
+
+/* ================= reduced motion ================= */
 
 @media (prefers-reduced-motion: reduce) {
+  .aurora,
   .dice.rolling,
-  .reel-window.spinning {
+  .reel-window.spinning,
+  .mystery-box.picked,
+  .shimmer,
+  .tile-page {
     animation: none;
   }
-  .pop-in {
-    animation: none;
-  }
-  .brand-tile {
+  .wheel,
+  .brand-tile,
+  .prize-card,
+  .memory-card,
+  .btn-primary {
     transition: none;
   }
-  .mystery-box.picked {
+  .pop-in {
     animation: none;
   }
 }

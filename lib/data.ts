@@ -3,7 +3,6 @@ export type Pod = {
   name: string;
   category: string;
   area: string;
-  accent: string; // CSS color token name for category-coded UI
 };
 
 export type Merchant = {
@@ -56,20 +55,24 @@ export type WinRecord = {
   wonAtISO: string;
   redemptionCode: string;
   redeemed: boolean;
-  bonus?: boolean;
 };
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString();
 const hoursAgo = (n: number) => new Date(Date.now() - n * 3600000).toISOString();
 
 export const PODS: Pod[] = [
-  { id: "cafes-koramangala", name: "Cafés · Koramangala", category: "Food & Beverage", area: "Koramangala", accent: "cat-food" },
-  { id: "diners-hsr", name: "Diners · HSR Layout", category: "Food & Beverage", area: "HSR Layout", accent: "cat-food" },
-  { id: "salons-indiranagar", name: "Salons · Indiranagar", category: "Beauty & Wellness", area: "Indiranagar", accent: "cat-beauty" },
-  { id: "gyms-btm", name: "Gyms · BTM Layout", category: "Fitness", area: "BTM Layout", accent: "cat-fitness" },
-  { id: "boutiques-jayanagar", name: "Boutiques · Jayanagar", category: "Shopping", area: "Jayanagar", accent: "cat-shopping" },
-  { id: "fun-whitefield", name: "Cinemas & Fun · Whitefield", category: "Entertainment", area: "Whitefield", accent: "cat-entertainment" },
-  { id: "travel-marathahalli", name: "Travel Desk · Marathahalli", category: "Travel", area: "Marathahalli", accent: "cat-travel" },
+  { id: "cafes-koramangala", name: "Cafés · Koramangala", category: "Food & Beverage", area: "Koramangala" },
+  { id: "diners-hsr", name: "Diners · HSR Layout", category: "Food & Beverage", area: "HSR Layout" },
+  { id: "salons-indiranagar", name: "Salons · Indiranagar", category: "Beauty & Wellness", area: "Indiranagar" },
+  { id: "spas-jayanagar", name: "Spas · Jayanagar", category: "Beauty & Wellness", area: "Jayanagar" },
+  { id: "gyms-btm", name: "Gyms · BTM Layout", category: "Fitness", area: "BTM Layout" },
+  { id: "studios-whitefield", name: "Studios · Whitefield", category: "Fitness", area: "Whitefield" },
+  { id: "boutiques-jayanagar", name: "Boutiques · Jayanagar", category: "Shopping", area: "Jayanagar" },
+  { id: "malls-indiranagar", name: "Shops · Indiranagar", category: "Shopping", area: "Indiranagar" },
+  { id: "fun-whitefield", name: "Cinemas & Fun · Whitefield", category: "Entertainment", area: "Whitefield" },
+  { id: "nightlife-koramangala", name: "Nightlife · Koramangala", category: "Entertainment", area: "Koramangala" },
+  { id: "travel-marathahalli", name: "Travel Desk · Marathahalli", category: "Travel", area: "Marathahalli" },
+  { id: "stays-ecity", name: "Stays · Electronic City", category: "Travel", area: "Electronic City" },
 ];
 
 export const CATEGORIES = Array.from(new Set(PODS.map((p) => p.category)));
@@ -92,57 +95,199 @@ export const CATEGORY_ACCENT: Record<string, string> = {
   Travel: "cat-travel",
 };
 
-export const MERCHANTS: Merchant[] = [
-  { id: "third-wave", podId: "cafes-koramangala", name: "Third Wave Coffee", emoji: "☕" },
-  { id: "filter-fable", podId: "cafes-koramangala", name: "Filter & Fable", emoji: "☕" },
-  { id: "brew-bros", podId: "cafes-koramangala", name: "Brew Bros", emoji: "☕" },
-  { id: "trips-diner", podId: "diners-hsr", name: "Trip's Diner", emoji: "🍽️" },
-  { id: "urban-tadka", podId: "diners-hsr", name: "Urban Tadka", emoji: "🍛" },
-  { id: "glow-salon", podId: "salons-indiranagar", name: "Glow Salon & Spa", emoji: "💇" },
-  { id: "bliss-studio", podId: "salons-indiranagar", name: "Bliss Studio", emoji: "💆" },
-  { id: "fitzone", podId: "gyms-btm", name: "FitZone", emoji: "🏋️" },
-  { id: "urban-threads", podId: "boutiques-jayanagar", name: "Urban Threads", emoji: "👗" },
-  { id: "cinemax", podId: "fun-whitefield", name: "CineMax Whitefield", emoji: "🎬" },
-  { id: "wanderwell", podId: "travel-marathahalli", name: "WanderWell Travels", emoji: "✈️" },
-];
-
-export const REWARD_ITEMS: RewardItem[] = [
-  { id: "r-coffee", merchantId: "third-wave", podId: "cafes-koramangala", label: "Free filter coffee", icon: "☕", totalStock: 50 },
-  { id: "r-pastry", merchantId: "third-wave", podId: "cafes-koramangala", label: "20% off pastries", icon: "🥐", totalStock: 40 },
-  { id: "r-tote", merchantId: "third-wave", podId: "cafes-koramangala", label: "Free merch tote", icon: "👜", totalStock: 3 },
-  { id: "r-coldbrew", merchantId: "filter-fable", podId: "cafes-koramangala", label: "Buy 1 get 1 cold brew", icon: "🧊", totalStock: 20 },
-  { id: "r-bogo", merchantId: "trips-diner", podId: "diners-hsr", label: "Buy 1 get 1 mains", icon: "🍽️", totalStock: 25 },
-  { id: "r-dessert", merchantId: "urban-tadka", podId: "diners-hsr", label: "Free dessert with mains", icon: "🍰", totalStock: 18 },
-  { id: "r-service", merchantId: "glow-salon", podId: "salons-indiranagar", label: "20% off any service", icon: "💅", totalStock: 30 },
-  { id: "r-facial", merchantId: "bliss-studio", podId: "salons-indiranagar", label: "Free express facial", icon: "🧖", totalStock: 12 },
-  { id: "r-daypass", merchantId: "fitzone", podId: "gyms-btm", label: "Free 1-day gym pass", icon: "🎫", totalStock: 40 },
-  { id: "r-membership", merchantId: "fitzone", podId: "gyms-btm", label: "20% off annual membership", icon: "💪", totalStock: 10 },
-  { id: "r-off200", merchantId: "urban-threads", podId: "boutiques-jayanagar", label: "₹200 off any purchase", icon: "🛍️", totalStock: 35 },
-  { id: "r-totebag", merchantId: "urban-threads", podId: "boutiques-jayanagar", label: "Free tote with ₹999+", icon: "👜", totalStock: 15 },
-  { id: "r-popcorn", merchantId: "cinemax", podId: "fun-whitefield", label: "Free popcorn combo", icon: "🍿", totalStock: 30 },
-  { id: "r-movie-bogo", merchantId: "cinemax", podId: "fun-whitefield", label: "Buy 1 get 1 movie ticket", icon: "🎟️", totalStock: 20 },
-  { id: "r-cabvoucher", merchantId: "wanderwell", podId: "travel-marathahalli", label: "Free airport cab voucher", icon: "🚕", totalStock: 12 },
-  { id: "r-getaway", merchantId: "wanderwell", podId: "travel-marathahalli", label: "₹500 off a weekend getaway", icon: "🧳", totalStock: 8 },
-];
-
-export const INITIAL_STOCK: Record<string, number> = {
-  "r-coffee": 18,
-  "r-pastry": 29,
-  "r-tote": 2,
-  "r-coldbrew": 13,
-  "r-bogo": 19,
-  "r-dessert": 11,
-  "r-service": 22,
-  "r-facial": 8,
-  "r-daypass": 27,
-  "r-membership": 6,
-  "r-off200": 24,
-  "r-totebag": 9,
-  "r-popcorn": 21,
-  "r-movie-bogo": 12,
-  "r-cabvoucher": 5,
-  "r-getaway": 3,
+type BrandSeed = {
+  id: string;
+  name: string;
+  emoji: string;
+  podId: string;
+  rewards: Array<{ label: string; icon: string; total: number; left: number }>;
 };
+
+const BRANDS: BrandSeed[] = [
+  // --- Food & Beverage ---
+  { id: "third-wave", name: "Third Wave Coffee", emoji: "☕", podId: "cafes-koramangala", rewards: [
+    { label: "Free filter coffee", icon: "☕", total: 50, left: 18 },
+    { label: "20% off pastries", icon: "🥐", total: 40, left: 29 },
+  ] },
+  { id: "filter-fable", name: "Filter & Fable", emoji: "🫖", podId: "cafes-koramangala", rewards: [
+    { label: "Buy 1 get 1 cold brew", icon: "🧊", total: 20, left: 13 },
+  ] },
+  { id: "brew-bros", name: "Brew Bros", emoji: "☕", podId: "cafes-koramangala", rewards: [
+    { label: "Free espresso shot", icon: "⚡", total: 30, left: 22 },
+  ] },
+  { id: "bean-theory", name: "Bean Theory", emoji: "🌱", podId: "cafes-koramangala", rewards: [
+    { label: "Free croissant with coffee", icon: "🥐", total: 25, left: 11 },
+  ] },
+  { id: "trips-diner", name: "Trip's Diner", emoji: "🍽️", podId: "diners-hsr", rewards: [
+    { label: "Buy 1 get 1 mains", icon: "🍽️", total: 25, left: 19 },
+  ] },
+  { id: "urban-tadka", name: "Urban Tadka", emoji: "🍛", podId: "diners-hsr", rewards: [
+    { label: "Free dessert with mains", icon: "🍰", total: 18, left: 11 },
+  ] },
+  { id: "thali-junction", name: "Thali Junction", emoji: "🍲", podId: "diners-hsr", rewards: [
+    { label: "₹100 off unlimited thali", icon: "🪙", total: 30, left: 24 },
+  ] },
+  { id: "smoke-skillet", name: "Smoke & Skillet", emoji: "🍖", podId: "diners-hsr", rewards: [
+    { label: "Free starter with any grill", icon: "🔥", total: 22, left: 9 },
+  ] },
+
+  // --- Beauty & Wellness ---
+  { id: "glow-salon", name: "Glow Salon & Spa", emoji: "💇", podId: "salons-indiranagar", rewards: [
+    { label: "20% off any service", icon: "💅", total: 30, left: 22 },
+  ] },
+  { id: "bliss-studio", name: "Bliss Studio", emoji: "💆", podId: "salons-indiranagar", rewards: [
+    { label: "Free express facial", icon: "🧖", total: 12, left: 8 },
+  ] },
+  { id: "mane-room", name: "The Mane Room", emoji: "💈", podId: "salons-indiranagar", rewards: [
+    { label: "Free beard trim", icon: "✂️", total: 20, left: 15 },
+  ] },
+  { id: "lumen-skin", name: "Lumen Skin Bar", emoji: "✨", podId: "salons-indiranagar", rewards: [
+    { label: "₹300 off first facial", icon: "🪙", total: 16, left: 7 },
+  ] },
+  { id: "serene-ayur", name: "Serene Ayur Spa", emoji: "🌿", podId: "spas-jayanagar", rewards: [
+    { label: "Free 20-min foot massage", icon: "🦶", total: 18, left: 12 },
+  ] },
+  { id: "calm-co", name: "Calm Co.", emoji: "🧘", podId: "spas-jayanagar", rewards: [
+    { label: "Buy 1 get 1 aroma session", icon: "🕯️", total: 14, left: 6 },
+  ] },
+  { id: "nail-atelier", name: "Nail Atelier", emoji: "💅", podId: "spas-jayanagar", rewards: [
+    { label: "Free nail art add-on", icon: "🎨", total: 24, left: 17 },
+  ] },
+  { id: "rejuve", name: "Rejuve Wellness", emoji: "🛁", podId: "spas-jayanagar", rewards: [
+    { label: "₹500 off body spa", icon: "🪙", total: 10, left: 4 },
+  ] },
+
+  // --- Fitness ---
+  { id: "fitzone", name: "FitZone", emoji: "🏋️", podId: "gyms-btm", rewards: [
+    { label: "Free 1-day gym pass", icon: "🎫", total: 40, left: 27 },
+    { label: "20% off annual membership", icon: "💪", total: 10, left: 6 },
+  ] },
+  { id: "iron-yard", name: "Iron Yard", emoji: "🏋️‍♂️", podId: "gyms-btm", rewards: [
+    { label: "Free trainer session", icon: "🤝", total: 15, left: 9 },
+  ] },
+  { id: "pulse-studio", name: "Pulse Studio", emoji: "🚴", podId: "gyms-btm", rewards: [
+    { label: "Free spin class", icon: "🚲", total: 20, left: 13 },
+  ] },
+  { id: "corelab", name: "CoreLab", emoji: "🤸", podId: "gyms-btm", rewards: [
+    { label: "Free HIIT trial week", icon: "🔥", total: 12, left: 5 },
+  ] },
+  { id: "yoga-shala", name: "Yoga Shala", emoji: "🧘‍♀️", podId: "studios-whitefield", rewards: [
+    { label: "Free drop-in yoga class", icon: "🪷", total: 25, left: 18 },
+  ] },
+  { id: "box-republic", name: "Box Republic", emoji: "🥊", podId: "studios-whitefield", rewards: [
+    { label: "Free boxing intro class", icon: "🥊", total: 16, left: 10 },
+  ] },
+  { id: "runclub-blr", name: "RunClub BLR", emoji: "🏃", podId: "studios-whitefield", rewards: [
+    { label: "Free gait analysis", icon: "👟", total: 14, left: 8 },
+  ] },
+  { id: "aqua-fit", name: "Aqua Fit", emoji: "🏊", podId: "studios-whitefield", rewards: [
+    { label: "Free pool day pass", icon: "🩱", total: 18, left: 11 },
+  ] },
+
+  // --- Shopping ---
+  { id: "urban-threads", name: "Urban Threads", emoji: "👗", podId: "boutiques-jayanagar", rewards: [
+    { label: "₹200 off any purchase", icon: "🛍️", total: 35, left: 24 },
+    { label: "Free tote with ₹999+", icon: "👜", total: 15, left: 9 },
+  ] },
+  { id: "loom-co", name: "Loom & Co.", emoji: "🧵", podId: "boutiques-jayanagar", rewards: [
+    { label: "15% off handloom", icon: "🧶", total: 28, left: 19 },
+  ] },
+  { id: "streetkart", name: "StreetKart", emoji: "🧢", podId: "boutiques-jayanagar", rewards: [
+    { label: "Free cap with ₹1499+", icon: "🧢", total: 20, left: 12 },
+  ] },
+  { id: "silver-lining", name: "Silver Lining", emoji: "💍", podId: "boutiques-jayanagar", rewards: [
+    { label: "₹500 off silver jewellery", icon: "💎", total: 12, left: 5 },
+  ] },
+  { id: "sole-story", name: "Sole Story", emoji: "👟", podId: "malls-indiranagar", rewards: [
+    { label: "₹300 off sneakers", icon: "👟", total: 26, left: 16 },
+  ] },
+  { id: "page-one", name: "Page One Books", emoji: "📚", podId: "malls-indiranagar", rewards: [
+    { label: "Buy 2 get 1 free", icon: "📖", total: 30, left: 21 },
+  ] },
+  { id: "gadget-garage", name: "Gadget Garage", emoji: "🔌", podId: "malls-indiranagar", rewards: [
+    { label: "Free screen guard fitting", icon: "📱", total: 22, left: 14 },
+  ] },
+  { id: "bloom-florals", name: "Bloom Florals", emoji: "💐", podId: "malls-indiranagar", rewards: [
+    { label: "Free roses with ₹699+", icon: "🌹", total: 18, left: 10 },
+  ] },
+
+  // --- Entertainment ---
+  { id: "cinemax", name: "CineMax Whitefield", emoji: "🎬", podId: "fun-whitefield", rewards: [
+    { label: "Free popcorn combo", icon: "🍿", total: 30, left: 21 },
+    { label: "Buy 1 get 1 movie ticket", icon: "🎟️", total: 20, left: 12 },
+  ] },
+  { id: "playzone", name: "PlayZone Arcade", emoji: "🎮", podId: "fun-whitefield", rewards: [
+    { label: "Free 10 arcade tokens", icon: "🪙", total: 40, left: 28 },
+  ] },
+  { id: "laser-tag", name: "Laser Tag BLR", emoji: "🔫", podId: "fun-whitefield", rewards: [
+    { label: "Free extra round", icon: "🎯", total: 16, left: 9 },
+  ] },
+  { id: "bowl-city", name: "Bowl City", emoji: "🎳", podId: "fun-whitefield", rewards: [
+    { label: "Free shoes + 1 game", icon: "🎳", total: 24, left: 15 },
+  ] },
+  { id: "skybar-21", name: "Skybar 21", emoji: "🍸", podId: "nightlife-koramangala", rewards: [
+    { label: "Free mocktail on entry", icon: "🍹", total: 26, left: 17 },
+  ] },
+  { id: "comedy-cellar", name: "The Comedy Cellar", emoji: "🎤", podId: "nightlife-koramangala", rewards: [
+    { label: "Buy 1 get 1 standup ticket", icon: "🎭", total: 20, left: 11 },
+  ] },
+  { id: "vinyl-vibes", name: "Vinyl & Vibes", emoji: "🎧", podId: "nightlife-koramangala", rewards: [
+    { label: "Free cover charge Friday", icon: "🎶", total: 18, left: 8 },
+  ] },
+  { id: "board-cafe", name: "Board Game Café", emoji: "🎲", podId: "nightlife-koramangala", rewards: [
+    { label: "Free 1-hour table", icon: "♟️", total: 22, left: 13 },
+  ] },
+
+  // --- Travel ---
+  { id: "wanderwell", name: "WanderWell Travels", emoji: "✈️", podId: "travel-marathahalli", rewards: [
+    { label: "Free airport cab voucher", icon: "🚕", total: 12, left: 5 },
+    { label: "₹500 off a weekend getaway", icon: "🧳", total: 8, left: 3 },
+  ] },
+  { id: "hillroute", name: "HillRoute Trips", emoji: "🏔️", podId: "travel-marathahalli", rewards: [
+    { label: "₹1000 off trek package", icon: "🥾", total: 10, left: 4 },
+  ] },
+  { id: "citystay", name: "CityStay Rooms", emoji: "🛏️", podId: "travel-marathahalli", rewards: [
+    { label: "Free breakfast upgrade", icon: "🍳", total: 20, left: 13 },
+  ] },
+  { id: "rideeasy", name: "RideEasy Rentals", emoji: "🛵", podId: "travel-marathahalli", rewards: [
+    { label: "Free helmet + 2h ride", icon: "⛑️", total: 24, left: 16 },
+  ] },
+  { id: "nest-stays", name: "Nest Serviced Stays", emoji: "🏨", podId: "stays-ecity", rewards: [
+    { label: "Free late checkout", icon: "🕐", total: 18, left: 11 },
+  ] },
+  { id: "backpackers", name: "Backpackers Bunk", emoji: "🎒", podId: "stays-ecity", rewards: [
+    { label: "20% off dorm night", icon: "🛌", total: 26, left: 18 },
+  ] },
+  { id: "lakeview", name: "Lakeview Resort", emoji: "🌅", podId: "stays-ecity", rewards: [
+    { label: "₹800 off weekend stay", icon: "🏞️", total: 9, left: 3 },
+  ] },
+  { id: "campfire-co", name: "CampFire Co.", emoji: "🔥", podId: "stays-ecity", rewards: [
+    { label: "Free campsite add-on", icon: "⛺", total: 14, left: 7 },
+  ] },
+];
+
+export const MERCHANTS: Merchant[] = BRANDS.map(({ id, name, emoji, podId }) => ({ id, name, emoji, podId }));
+
+export const REWARD_ITEMS: RewardItem[] = BRANDS.flatMap((b) =>
+  b.rewards.map((r, i) => ({
+    id: `${b.id}-r${i + 1}`,
+    merchantId: b.id,
+    podId: b.podId,
+    label: r.label,
+    icon: r.icon,
+    totalStock: r.total,
+  }))
+);
+
+export const INITIAL_STOCK: Record<string, number> = Object.fromEntries(
+  BRANDS.flatMap((b) => b.rewards.map((r, i) => [`${b.id}-r${i + 1}`, r.left]))
+);
+
+export const INITIAL_WALLETS: Record<string, number> = Object.fromEntries(
+  // Deterministic spread of starting credits so the demo has both flush and
+  // nearly-broke merchants without randomness at module scope.
+  BRANDS.map((b, i) => [b.id, 100 + (i % 5) * 100])
+);
 
 export const MAX_BRANDS_DISPLAYED = 100;
 
@@ -220,21 +365,17 @@ export const INITIAL_WISHES: Wish[] = [
     createdAtISO: hoursAgo(30),
     upvotes: 17,
   },
+  {
+    id: "w-8",
+    customerName: "Kabir",
+    category: "Beauty & Wellness",
+    text: "a spa day for my mum's 50th — she's never had one",
+    status: "open",
+    claimPrice: 0,
+    createdAtISO: hoursAgo(8),
+    upvotes: 44,
+  },
 ];
-
-export const INITIAL_WALLETS: Record<string, number> = {
-  "third-wave": 400,
-  "filter-fable": 200,
-  "brew-bros": 100,
-  "trips-diner": 300,
-  "urban-tadka": 100,
-  "glow-salon": 200,
-  "bliss-studio": 300,
-  fitzone: 400,
-  "urban-threads": 300,
-  cinemax: 500,
-  wanderwell: 200,
-};
 
 // --- Wish pricing (the only place money moves, per outbid.lol) ---
 export const WISH_BASE_PRICE = 100;
@@ -274,44 +415,28 @@ export function nextWeekday(targetDay: number, hour: number): Date {
 
 export const COMMUNITY_UNLOCK_TARGET = 25;
 
-// Roster chosen from the mechanics that actually move engagement numbers in
-// live loyalty apps — spin wheel, scratch card, slot reels and mystery box
-// are the four instant-win formats every major platform (CRED, Zomato,
-// Starbucks Rewards) converges on; dice is the odd-one-out for variance.
-export const GAME_LIBRARY = [
-  {
-    id: "rub-the-lamp",
-    name: "Rub the Lamp",
-    icon: "🧞",
-    tagline: "Spin for an instant prize from the live pool.",
-    kind: "always-live" as const,
-  },
-  {
-    id: "roll-the-dice",
-    name: "Roll the Dice",
-    icon: "🎲",
-    tagline: "Higher variance — snake eyes doubles your prize.",
-    kind: "always-live" as const,
-  },
-  {
-    id: "scratch-win",
-    name: "Scratch & Win",
-    icon: "🪙",
-    tagline: "Scratch three panels to reveal your prize.",
-    kind: "always-live" as const,
-  },
-  {
-    id: "mystery-box",
-    name: "Mystery Box",
-    icon: "🎁",
-    tagline: "Pick one of three boxes — no peeking.",
-    kind: "always-live" as const,
-  },
-  {
-    id: "lucky-reels",
-    name: "Lucky Reels",
-    icon: "🎰",
-    tagline: "Three reels, one pull, instant reveal.",
-    kind: "always-live" as const,
-  },
+export type GameDef = {
+  id: string;
+  name: string;
+  icon: string;
+  tagline: string;
+  /** chance = always pays out; skill = you have to actually land it */
+  kind: "chance" | "skill";
+  gradient: [string, string];
+};
+
+// Roster drawn from the formats branded-minigame platforms actually ship:
+// instant-win reveals (wheel, scratch, slot, box, plinko) plus the skill
+// formats (reaction/timer, tap rush, memory match) that make a player feel
+// responsible for the win rather than just lucky.
+export const GAME_LIBRARY: GameDef[] = [
+  { id: "rub-the-lamp", name: "Rub the Lamp", icon: "🧞", tagline: "Spin the wheel for an instant prize.", kind: "chance", gradient: ["#7C3AED", "#3B1F7A"] },
+  { id: "scratch-win", name: "Scratch & Win", icon: "🪙", tagline: "Scratch three panels to reveal your prize.", kind: "chance", gradient: ["#B9860A", "#7A4B00"] },
+  { id: "lucky-reels", name: "Lucky Reels", icon: "🎰", tagline: "Three reels, one pull, instant reveal.", kind: "chance", gradient: ["#B8306F", "#6B1240"] },
+  { id: "mystery-box", name: "Mystery Box", icon: "🎁", tagline: "Pick one of three boxes — no peeking.", kind: "chance", gradient: ["#2354A6", "#12306B"] },
+  { id: "roll-the-dice", name: "Roll the Dice", icon: "🎲", tagline: "Two dice, one roll, pure chance.", kind: "chance", gradient: ["#0F8B6C", "#064B3A"] },
+  { id: "plinko-drop", name: "Plinko Drop", icon: "⚪", tagline: "Drop the ball and watch it bounce home.", kind: "chance", gradient: ["#1789A6", "#0A4B5C"] },
+  { id: "timer-stop", name: "Timer Stop", icon: "⏱️", tagline: "Stop the sweep inside the glowing zone.", kind: "skill", gradient: ["#C2540B", "#7A3306"] },
+  { id: "tap-rush", name: "Tap Rush", icon: "👆", tagline: "Hit 5 targets before the clock runs out.", kind: "skill", gradient: ["#A6237E", "#5E0F47"] },
+  { id: "memory-match", name: "Memory Match", icon: "🃏", tagline: "Find all three pairs in eight flips.", kind: "skill", gradient: ["#4C1D95", "#1E0B44"] },
 ];

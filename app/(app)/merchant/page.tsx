@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
 import { WISH_BASE_PRICE, WISH_INCREMENT, WISH_PACK_SINGLE, WISH_PACK_BULK } from "@/lib/data";
+import { BrandLogo } from "@/components/app/BrandLogo";
 
 function timeAgo(iso: string) {
   const ms = Date.now() - new Date(iso).getTime();
@@ -84,27 +85,32 @@ export default function MerchantConsolePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1180px] px-6 py-12">
+    <div className="relative mx-auto max-w-[1180px] px-6 pt-12 pb-16">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <span className="mb-2 block text-[12px] font-semibold tracking-[0.09em] text-gold uppercase">
+          <span className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-[11.5px] font-semibold tracking-wide text-text-soft uppercase">
             Merchant console
           </span>
-          <h1>Sponsor the wishes worth your name on</h1>
+          <h1 className="text-[clamp(26px,3.6vw,38px)] leading-[1.08] font-semibold">
+            Sponsor the wishes worth your name on
+          </h1>
         </div>
-        <label className="flex items-center gap-2 text-[13px]">
-          <span className="text-text-soft">Acting as</span>
-          <select
-            value={activeMerchantId}
-            onChange={(e) => setActiveMerchant(e.target.value)}
-            className="rounded-lg border border-border bg-surface-raised px-3 py-2 font-semibold"
-          >
-            {MERCHANTS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.emoji} {m.name}
-              </option>
-            ))}
-          </select>
+        <label className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface-raised px-3 py-2.5 text-[13px]">
+          <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="md" />
+          <span className="flex flex-col">
+            <span className="text-[10.5px] tracking-wide text-text-soft uppercase">Acting as</span>
+            <select
+              value={activeMerchantId}
+              onChange={(e) => setActiveMerchant(e.target.value)}
+              className="max-w-[220px] bg-transparent text-[13.5px] font-semibold outline-none"
+            >
+              {MERCHANTS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </span>
         </label>
       </div>
 
