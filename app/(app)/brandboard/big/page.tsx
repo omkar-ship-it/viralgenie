@@ -13,9 +13,8 @@ import {
 import { BrandLogo } from "@/components/app/BrandLogo";
 import { BiddingAsPicker } from "@/components/app/WishBidding";
 import { BoardVariantSwitch } from "@/components/app/BoardVariantSwitch";
-import { useBrandboard } from "@/components/app/useBrandboard";
-import { DieFace } from "@/components/app/DieFace";
 import { SpotModal } from "@/components/app/SpotModal";
+import { useBrandboard } from "@/components/app/useBrandboard";
 
 const ROW_H = 152;
 const GAP = 6;
@@ -23,31 +22,28 @@ const PAD = 12;
 
 export default function BigBrandboardPage() {
   const hydrated = useHasHydrated();
-  const spots = useAppStore((s) => s.spots);
   const stock = useAppStore((s) => s.stock);
-  const spotClicks = useAppStore((s) => s.spotClicks);
-  const registerSpotClick = useAppStore((s) => s.registerSpotClick);
+  const brandClicks = useAppStore((s) => s.brandClicks);
+  const registerBrandClick = useAppStore((s) => s.registerBrandClick);
 
-  const { mounted, start, die, rolling, busy, result, candidates, tokenSquare, hopping, roll } =
-    useBrandboard();
-
+  const { mounted, ranked, claimed, start, busy, slowing, result, tokenSquare, hopping, startRound } = useBrandboard();
   const [selected, setSelected] = useState<number | null>(null);
 
   if (!hydrated || !mounted) {
     return <div className="mx-auto max-w-[1460px] px-6 py-24 text-text-soft">Waking the genie…</div>;
   }
 
-  function selectSquare(square: number) {
-    setSelected(square);
-    registerSpotClick(square);
+  function openPosition(position: number) {
+    setSelected(position);
+    const entry = ranked[position - 1];
+    if (entry) registerBrandClick(entry.merchantId);
   }
 
   function rewardsFor(merchantId: string) {
     return REWARD_ITEMS.filter((r) => r.merchantId === merchantId).reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
   }
 
-  const filled = Object.keys(spots).length;
-  const totalClicks = Object.values(spotClicks).reduce((a, b) => a + b, 0);
+  const totalClicks = Object.values(brandClicks).reduce((a, b) => a + b, 0);
   const landedMerchant = result?.merchantId ? MERCHANTS.find((m) => m.id === result.merchantId) : null;
   const tokenCell = squareToCell(tokenSquare);
 
@@ -59,38 +55,45 @@ export default function BigBrandboardPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <span className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-[11.5px] font-semibold tracking-wide text-text-soft uppercase">
             <span className="h-1.5 w-1.5 rounded-full bg-good" />
-            {filled} of {BRANDBOARD_SPOTS} claimed · {totalClicks.toLocaleString("en-IN")} clicks
+            {claimed} of {BRANDBOARD_SPOTS} taken · {totalClicks.toLocaleString("en-IN")} clicks
           </span>
           <BoardVariantSwitch />
         </div>
 
         <h1 className="max-w-[20ch] text-[clamp(30px,5vw,52px)] leading-[1.03] font-semibold">
-          One hundred storefronts. One roll a day.
+          The highest bid stands first in line.
         </h1>
         <p className="mt-4 max-w-[70ch] text-[15.5px] text-text-soft">
-          Same board, bigger windows: every claimed square shows the brand behind it — who
-          they are, what they do, how many people have looked, and how many prizes are still
-          on the shelf. Tap a square to inspect it; roll once a day to see where the genie
-          walks.
+          One bid per brand, sorted highest first — raise yours and the board re-ranks
+          around you. Positions fill from the top, so there are never gaps in between. Every
+          tile shows who&rsquo;s standing there, what they do, how many people have looked and
+          what&rsquo;s still on their shelf.
         </p>
 
-        {/* ---------------- control bar ---------------- */}
+        {/* ---------------- the round ---------------- */}
         <div
           className="mt-8 flex flex-wrap items-center gap-5 rounded-2xl border border-border bg-surface-raised px-5 py-4"
           style={{ boxShadow: "var(--shadow)" }}
         >
           {!result ? (
             <>
-              <DieFace value={die} size={54} rolling={rolling} />
+              <span className="text-[38px] leading-none">{busy ? "🧞" : "😴"}</span>
               <div className="min-w-0 flex-1">
-                <div className="text-[15px] font-semibold">Your daily roll</div>
+                <div className="text-[15px] font-semibold">
+                  The Genie&rsquo;s Round
+                  {busy && (
+                    <span className="mono ml-2 text-[12px] font-normal text-text-soft">
+                      {slowing ? "slowing down…" : "walking…"} now at #{tokenSquare}
+                    </span>
+                  )}
+                </div>
                 <p className="text-[12.5px] text-text-soft">
-                  The genie sleeps on <span className="mono font-bold text-accent-deep">#{start}</span> tonight — gold
-                  tiles are where he could land, and he walks on past empty lots.
+                  He wakes at <span className="mono font-bold text-accent-deep">#{start}</span> — same for everyone
+                  today — then walks until his feet give out. Nobody knows how far.
                 </p>
               </div>
-              <button onClick={roll} disabled={busy} className="btn-primary rounded-full px-7 py-3 text-[14px] font-semibold">
-                {rolling ? "Rolling…" : "🎲 Roll the dice"}
+              <button onClick={startRound} disabled={busy} className="btn-primary rounded-full px-7 py-3 text-[14px] font-semibold">
+                {busy ? "He's off…" : "🧞 Wake the genie"}
               </button>
             </>
           ) : (
@@ -98,14 +101,7 @@ export default function BigBrandboardPage() {
               <span className="text-[34px] leading-none">{result.rewardLabel ? "🎉" : "😅"}</span>
               <div className="min-w-0 flex-1">
                 <p className="text-[12.5px] text-text-soft">
-                  You rolled onto <span className="mono font-bold">#{result.rolled}</span>
-                  {result.passed > 0 ? (
-                    <>
-                      , the genie walked past {result.passed} empty {result.passed === 1 ? "lot" : "lots"} and stopped on{" "}
-                    </>
-                  ) : (
-                    <> and the genie stopped on </>
-                  )}
+                  He walked <span className="mono font-bold">{result.steps}</span> positions and stopped at{" "}
                   <span className="mono font-bold text-accent-deep">#{result.landed}</span>.
                 </p>
                 {result.rewardLabel ? (
@@ -142,48 +138,43 @@ export default function BigBrandboardPage() {
         >
           <BiddingAsPicker compact />
           <p className="text-[12.5px] text-text-soft">
-            Tap any tile to open the brand — their links, what they&rsquo;re giving away, and
-            what it costs to take their square. Open spots start at ₹{SPOT_BASE_PRICE}.
+            Tap any tile to open that brand and outbid them — bids start at ₹{SPOT_BASE_PRICE}{" "}
+            and the board re-ranks the moment one lands.
           </p>
         </div>
 
         {/* ---------------- board ---------------- */}
         <div className="bbx-board mt-6">
-          {Array.from({ length: 100 }, (_, cellIndex) => {
-            const row = Math.floor(cellIndex / 10);
-            const col = cellIndex % 10;
-            const rowFromBottom = 9 - row;
-            const withinRow = rowFromBottom % 2 === 0 ? col : 9 - col;
-            const square = rowFromBottom * 10 + withinRow + 1;
-
-            const spot = spots[square];
-            const merchant = spot ? MERCHANTS.find((m) => m.id === spot.merchantId) : null;
+          {Array.from({ length: BRANDBOARD_SPOTS }, (_, i) => {
+            const position = i + 1;
+            const entry = ranked[position - 1];
+            const merchant = entry ? MERCHANTS.find((m) => m.id === entry.merchantId) : null;
             const pod = merchant ? PODS.find((p) => p.id === merchant.podId) : null;
             const accent = pod ? CATEGORY_ACCENT[pod.category] : null;
 
             const classes = [
               "bbx-cell",
-              spot ? "" : "open",
-              selected === square ? "selected" : "",
-              candidates.includes(square) ? "candidate" : "",
-              result?.landed === square ? "landed" : "",
+              entry ? "" : "open",
+              selected === position ? "selected" : "",
+              !result && position === start ? "candidate" : "",
+              result?.landed === position ? "landed" : "",
             ]
               .filter(Boolean)
               .join(" ");
 
             return (
-              <button key={square} className={classes} onClick={() => selectSquare(square)}>
+              <button key={position} className={classes} onClick={() => openPosition(position)}>
                 {accent && <span className="bbx-accent" style={{ background: `var(--${accent})` }} />}
-                <span className="bbx-num">{square}</span>
+                <span className="bbx-num">#{position}</span>
 
                 {merchant ? (
                   <>
-                    <span className="bbx-price">₹{spot!.price}</span>
+                    <span className="bbx-price">₹{entry!.price}</span>
                     <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="md" />
                     <span className="bbx-name">{merchant.name}</span>
                     <span className="bbx-desc">{BRAND_TAGLINE[merchant.id] ?? pod?.category}</span>
                     <span className="bbx-stats">
-                      <span title="tile clicks">👆 {(spotClicks[square] ?? 0).toLocaleString("en-IN")}</span>
+                      <span title="brand clicks">👆 {(brandClicks[merchant.id] ?? 0).toLocaleString("en-IN")}</span>
                       <span style={{ color: `var(--${accent})` }} title="rewards live">
                         🎁 {rewardsFor(merchant.id)}
                       </span>
@@ -192,8 +183,8 @@ export default function BigBrandboardPage() {
                 ) : (
                   <>
                     <span className="text-[22px] text-text-soft opacity-40">+</span>
-                    <span className="text-[10.5px] font-semibold text-text-soft">Open spot</span>
-                    <span className="mono text-[10px] text-text-soft">₹{SPOT_BASE_PRICE}</span>
+                    <span className="text-[10.5px] font-semibold text-text-soft">Open</span>
+                    <span className="mono text-[10px] text-text-soft">from ₹{SPOT_BASE_PRICE}</span>
                   </>
                 )}
               </button>
@@ -215,12 +206,12 @@ export default function BigBrandboardPage() {
         </div>
 
         <p className="mt-3 text-center text-[11.5px] text-text-soft">
-          Square 1 is bottom-left — the board snakes upward. 👆 is how many times a tile has
-          been opened, 🎁 is how many prizes that brand still has on the shelf.
+          Position #1 is top-left, ranked by live bid. 👆 is how many times a brand has been
+          opened, 🎁 is what they still have on the shelf.
         </p>
       </div>
 
-      <SpotModal square={selected} onClose={() => setSelected(null)} />
+      <SpotModal position={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }

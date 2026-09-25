@@ -497,53 +497,63 @@ export function brandLinks(id: string) {
   };
 }
 
-// --- Brandboard: 100 numbered spots, snakes-and-ladders geometry ---
+// --- Brandboard: 100 positions, ranked by live bid ---
 export const BRANDBOARD_SPOTS = 100;
 export const SPOT_BASE_PRICE = 100;
 export const SPOT_INCREMENT = 100;
 
-export type Spot = { merchantId: string; price: number };
+/**
+ * `since` is a plain counter, not a timestamp: it only breaks ties between
+ * equal bids (earlier bid keeps the better position) and a Date.now() at
+ * module scope would differ between the server and client render.
+ */
+export type BoardBid = { price: number; since: number };
+
+export const INITIAL_BOARD_BIDS: Record<string, BoardBid> = (() => {
+  const bids: Record<string, BoardBid> = {};
+  BRANDS.forEach((brand, i) => {
+    if (i % 12 === 11) return; // a few brands stay off the board
+    bids[brand.id] = { price: SPOT_BASE_PRICE + ((i * 7) % 18) * SPOT_INCREMENT, since: i };
+  });
+  return bids;
+})();
+
+/** Clicks follow the brand, not the square — positions move as bids change. */
+export const INITIAL_BRAND_CLICKS: Record<string, number> = Object.fromEntries(
+  BRANDS.map((brand, i) => [brand.id, 40 + ((i * 89) % 700)])
+);
 
 /**
- * Seeded deterministically (no Math.random at module scope, which would
- * desync server and client render). Leaves roughly a third of the board
- * open so there's something to bid for, and lets some brands hold more
- * than one square, exactly like holding several listings on outbid.lol.
+ * Positions are derived, never stored: sort by price, break ties by who bid
+ * first. Rank 1 is the top bid, and claimed positions are contiguous — the
+ * open slots are always the tail of the board.
  */
-export const INITIAL_SPOTS: Record<number, Spot> = (() => {
-  const spots: Record<number, Spot> = {};
-  for (let square = 1; square <= BRANDBOARD_SPOTS; square++) {
-    if ((square * 7) % 10 >= 7) continue; // ~30% left open
-    const brand = BRANDS[(square * 13) % BRANDS.length];
-    spots[square] = { merchantId: brand.id, price: SPOT_BASE_PRICE + ((square * 17) % 6) * SPOT_INCREMENT };
-  }
-  return spots;
-})();
-
-/** Seeded so the board shows real engagement rather than a wall of zeros. */
-export const INITIAL_SPOT_CLICKS: Record<number, number> = (() => {
-  const clicks: Record<number, number> = {};
-  for (let square = 1; square <= BRANDBOARD_SPOTS; square++) {
-    if (!INITIAL_SPOTS[square]) continue;
-    clicks[square] = 40 + ((square * 89) % 700);
-  }
-  return clicks;
-})();
-
-/** Same square for everyone on a given day — a shared daily ritual. */
-export function genieStartSquare(dayKey: string) {
-  let h = 0;
-  for (let i = 0; i < dayKey.length; i++) h = (h * 31 + dayKey.charCodeAt(i)) % 9973;
-  return (h % BRANDBOARD_SPOTS) + 1;
+export function rankBoard(bids: Record<string, BoardBid>) {
+  return Object.entries(bids)
+    .map(([merchantId, bid]) => ({ merchantId, ...bid }))
+    .sort((a, b) => b.price - a.price || a.since - b.since)
+    .slice(0, BRANDBOARD_SPOTS)
+    .map((entry, i) => ({ ...entry, position: i + 1 }));
 }
 
-/** Board is numbered from the bottom-left and snakes, like the real game. */
+/** Where a given price would land you, 1-based. */
+export function positionForPrice(bids: Record<string, BoardBid>, price: number, merchantId: string) {
+  const ahead = Object.entries(bids).filter(([id, bid]) => id !== merchantId && bid.price >= price).length;
+  return Math.min(ahead + 1, BRANDBOARD_SPOTS);
+}
+
+/** Same starting position for everyone that day — a shared daily ritual. */
+export function genieStart(dayKey: string, claimed: number) {
+  if (claimed < 1) return 1;
+  let h = 0;
+  for (let i = 0; i < dayKey.length; i++) h = (h * 31 + dayKey.charCodeAt(i)) % 9973;
+  return (h % claimed) + 1;
+}
+
+/** Reading order: rank 1 sits top-left, like any other leaderboard. */
 export function squareToCell(square: number) {
   const index = square - 1;
-  const rowFromBottom = Math.floor(index / 10);
-  const withinRow = index % 10;
-  const col = rowFromBottom % 2 === 0 ? withinRow : 9 - withinRow;
-  return { row: 9 - rowFromBottom, col };
+  return { row: Math.floor(index / 10), col: index % 10 };
 }
 
 // --- Wish pricing (the only place money moves, per outbid.lol) ---

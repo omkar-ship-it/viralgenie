@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useAppStore, REWARD_ITEMS } from "@/lib/store";
-import { BRANDBOARD_SPOTS, genieStartSquare } from "@/lib/data";
+import { genieStart, rankBoard } from "@/lib/data";
+
+const MIN_STEPS = 9;
+const MAX_STEPS = 22;
 
 /** Module scope so the randomness never sits in render-phase code. */
-function rollDie() {
-  return 1 + Math.floor(Math.random() * 6);
+function walkLength() {
+  return MIN_STEPS + Math.floor(Math.random() * (MAX_STEPS - MIN_STEPS + 1));
 }
 
 export function todayKey() {
@@ -14,13 +17,12 @@ export function todayKey() {
 }
 
 function playKey() {
-  return `viralgenie-brandboard-${todayKey()}`;
+  return `viralgenie-genieround-${todayKey()}`;
 }
 
 export type DailyResult = {
-  rolled: number;
   landed: number;
-  passed: number;
+  steps: number;
   merchantId?: string;
   rewardLabel?: string;
   redemptionCode?: string;
@@ -38,24 +40,26 @@ function readToday(): DailyResult | null {
 }
 
 /**
- * The daily roll, shared by both board layouts so the two variants differ
- * only in presentation — otherwise comparing them would be meaningless.
- * One roll per day is global, not per layout.
+ * The Genie's Round: he wakes on the same position for everyone that day,
+ * walks an unknown number of positions, and slows to a stop on a brand.
+ * Shared by both board layouts so the two differ only in presentation.
+ * One round per day, globally.
  */
 export function useBrandboard() {
-  const spots = useAppStore((s) => s.spots);
+  const boardBids = useAppStore((s) => s.boardBids);
   const stock = useAppStore((s) => s.stock);
   const playBrand = useAppStore((s) => s.playBrand);
 
   const [mounted, setMounted] = useState(false);
   const [result, setResult] = useState<DailyResult | null>(null);
-  const [rolling, setRolling] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [die, setDie] = useState(1);
+  const [slowing, setSlowing] = useState(false);
   const [tokenSquare, setTokenSquare] = useState(1);
   const [hopping, setHopping] = useState(false);
 
-  const start = genieStartSquare(todayKey());
+  const ranked = rankBoard(boardBids);
+  const claimed = ranked.length;
+  const start = genieStart(todayKey(), claimed);
 
   useEffect(() => {
     // localStorage and today's date are client-only: read after mount so the
@@ -66,97 +70,87 @@ export function useBrandboard() {
     if (saved) {
       setResult(saved);
       setTokenSquare(saved.landed);
-    } else {
-      setTokenSquare(genieStartSquare(todayKey()));
     }
   }, []);
 
-  const playedToday = result !== null;
-  const candidates = playedToday
-    ? []
-    : Array.from({ length: 6 }, (_, i) => ((start - 1 + i + 1) % BRANDBOARD_SPOTS) + 1);
+  useEffect(() => {
+    // Park the genie on today's starting position once the board is known.
+    if (result || busy) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTokenSquare(start);
+  }, [start, result, busy]);
 
-  /** A square only stops the genie if someone's home with something to give. */
-  function isHome(square: number) {
-    const spot = spots[square];
-    if (!spot) return false;
-    return REWARD_ITEMS.some((r) => r.merchantId === spot.merchantId && (stock[r.id] ?? 0) > 0);
+  /** He only stops where a brand can actually hand something over. */
+  function hasStock(position: number) {
+    const entry = ranked[position - 1];
+    if (!entry) return false;
+    return REWARD_ITEMS.some((r) => r.merchantId === entry.merchantId && (stock[r.id] ?? 0) > 0);
   }
 
-  function land(rolled: number, resting: number, passed: number) {
-    const spot = spots[resting];
+  function land(position: number, steps: number) {
+    const entry = ranked[position - 1];
     let outcome: DailyResult;
 
-    if (!spot) {
-      outcome = {
-        rolled,
-        landed: resting,
-        passed,
-        note: "Every brand on the board is out of stock today — come back tomorrow.",
-      };
+    if (!entry) {
+      outcome = { landed: position, steps, note: "The board is empty today — come back once brands have bid." };
     } else {
-      const prize = playBrand(spot.merchantId);
+      const prize = playBrand(entry.merchantId);
       outcome = prize
         ? {
-            rolled,
-            landed: resting,
-            passed,
-            merchantId: spot.merchantId,
+            landed: position,
+            steps,
+            merchantId: entry.merchantId,
             rewardLabel: prize.rewardLabel,
             redemptionCode: prize.redemptionCode,
           }
-        : { rolled, landed: resting, passed, merchantId: spot.merchantId, note: "That brand just ran dry — bad luck." };
+        : { landed: position, steps, merchantId: entry.merchantId, note: "That brand just ran dry — bad luck." };
     }
 
     setResult(outcome);
+    setSlowing(false);
     window.localStorage.setItem(playKey(), JSON.stringify(outcome));
     setBusy(false);
   }
 
-  function walk(steps: number, reduced: boolean) {
-    const rolled = ((start - 1 + steps) % BRANDBOARD_SPOTS) + 1;
-
-    // The genie won't settle on an empty lot — he keeps walking until he finds
-    // a brand at home, so a single daily roll is never wasted.
-    let resting = rolled;
-    let passed = 0;
-    while (!isHome(resting) && passed < BRANDBOARD_SPOTS) {
-      resting = (resting % BRANDBOARD_SPOTS) + 1;
-      passed++;
-    }
-
-    const totalHops = steps + passed;
-    const stepMs = reduced ? 0 : 240;
-
-    for (let i = 1; i <= totalHops; i++) {
-      window.setTimeout(() => {
-        setTokenSquare(((start - 1 + i) % BRANDBOARD_SPOTS) + 1);
-        setHopping(true);
-        window.setTimeout(() => setHopping(false), 200);
-      }, i * stepMs);
-    }
-    window.setTimeout(() => land(rolled, resting, passed), totalHops * stepMs + 260);
-  }
-
-  function roll() {
-    if (playedToday || busy) return;
+  function startRound() {
+    if (result || busy || claimed === 0) return;
     setBusy(true);
-    setRolling(true);
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const value = rollDie();
-    const shuffle = window.setInterval(() => setDie(rollDie()), 80);
+    let steps = walkLength();
 
-    window.setTimeout(
-      () => {
-        window.clearInterval(shuffle);
-        setDie(value);
-        setRolling(false);
-        walk(value, reduced);
-      },
-      reduced ? 0 : 900
-    );
+    // Keep walking past anyone who has nothing left to give.
+    let resting = ((start - 1 + steps) % claimed) + 1;
+    let guard = 0;
+    while (!hasStock(resting) && guard < claimed) {
+      steps++;
+      resting = ((start - 1 + steps) % claimed) + 1;
+      guard++;
+    }
+
+    if (reduced) {
+      setTokenSquare(resting);
+      land(resting, steps);
+      return;
+    }
+
+    // He sets off briskly and drags his feet over the last few positions —
+    // the deceleration is the suspense now that there's no die to watch.
+    let elapsed = 0;
+    for (let i = 1; i <= steps; i++) {
+      const remaining = steps - i;
+      const pace = remaining > 4 ? 135 : [520, 400, 300, 220, 175][remaining];
+      elapsed += pace;
+      const at = ((start - 1 + i) % claimed) + 1;
+      window.setTimeout(() => {
+        setTokenSquare(at);
+        setHopping(true);
+        if (remaining === 4) setSlowing(true);
+        window.setTimeout(() => setHopping(false), Math.min(180, pace - 20));
+      }, elapsed);
+    }
+    window.setTimeout(() => land(resting, steps), elapsed + 420);
   }
 
-  return { mounted, start, die, rolling, busy, result, playedToday, candidates, tokenSquare, hopping, roll };
+  return { mounted, ranked, claimed, start, busy, slowing, result, tokenSquare, hopping, startRound };
 }

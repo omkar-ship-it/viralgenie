@@ -10,10 +10,10 @@ import {
   INITIAL_WISHES,
   INITIAL_WALLETS,
   INITIAL_LOVES,
-  INITIAL_SPOTS,
-  INITIAL_SPOT_CLICKS,
+  INITIAL_BOARD_BIDS,
+  INITIAL_BRAND_CLICKS,
   SPOT_BASE_PRICE,
-  SPOT_INCREMENT,
+  rankBoard,
   WISH_BASE_PRICE,
   WISH_INCREMENT,
   WISH_PACK_SINGLE,
@@ -21,7 +21,7 @@ import {
   type Wish,
   type WishWarEvent,
   type WinRecord,
-  type Spot,
+  type BoardBid,
 } from "./data";
 
 function uid(prefix: string) {
@@ -40,8 +40,8 @@ type State = {
   wishWarEvents: WishWarEvent[];
   wins: WinRecord[];
   loves: Record<string, number>;
-  spots: Record<number, Spot>;
-  spotClicks: Record<number, number>;
+  boardBids: Record<string, BoardBid>;
+  brandClicks: Record<string, number>;
   totalPlaysThisWeek: number;
   activeMerchantId: string;
 
@@ -54,8 +54,8 @@ type State = {
   addWish: (customerName: string, category: string, text: string) => void;
   upvoteWish: (wishId: string) => void;
   loveBrand: (merchantId: string) => void;
-  claimSpot: (square: number, merchantId: string) => { ok: boolean; message: string };
-  registerSpotClick: (square: number) => void;
+  placeBoardBid: (merchantId: string, price: number) => { ok: boolean; message: string };
+  registerBrandClick: (merchantId: string) => void;
   playBrand: (merchantId: string) => { rewardLabel: string; redemptionCode: string } | null;
   addStock: (rewardId: string, qty: number) => void;
   playGame: (podId: string) => { rewardId: string; rewardLabel: string; merchantId: string; redemptionCode: string } | null;
@@ -72,8 +72,8 @@ export const useAppStore = create<State>()(
       wishWarEvents: [],
       wins: [],
       loves: INITIAL_LOVES,
-      spots: INITIAL_SPOTS,
-      spotClicks: INITIAL_SPOT_CLICKS,
+      boardBids: INITIAL_BOARD_BIDS,
+      brandClicks: INITIAL_BRAND_CLICKS,
       totalPlaysThisWeek: 0,
       activeMerchantId: MERCHANTS[0].id,
 
@@ -166,26 +166,34 @@ export const useAppStore = create<State>()(
         set((s) => ({ loves: { ...s.loves, [merchantId]: (s.loves[merchantId] ?? 0) + 1 } }));
       },
 
-      registerSpotClick: (square) => {
-        set((s) => ({ spotClicks: { ...s.spotClicks, [square]: (s.spotClicks[square] ?? 0) + 1 } }));
+      registerBrandClick: (merchantId) => {
+        set((s) => ({ brandClicks: { ...s.brandClicks, [merchantId]: (s.brandClicks[merchantId] ?? 0) + 1 } }));
       },
 
-      claimSpot: (square, merchantId) => {
-        const existing = get().spots[square];
-        if (existing?.merchantId === merchantId) {
-          return { ok: false, message: "You already hold this spot." };
+      /**
+       * One bid per brand. Raising it re-ranks the whole board, so there is
+       * never a gap: claimed positions stay contiguous from rank 1.
+       */
+      placeBoardBid: (merchantId, price) => {
+        const current = get().boardBids[merchantId];
+        if (current && price <= current.price) {
+          return { ok: false, message: `Your bid is already ₹${current.price} — go higher to move up.` };
         }
-        const price = existing ? existing.price + SPOT_INCREMENT : SPOT_BASE_PRICE;
+        if (price < SPOT_BASE_PRICE) {
+          return { ok: false, message: `Bids start at ₹${SPOT_BASE_PRICE}.` };
+        }
         const balance = get().wallets[merchantId] ?? 0;
         if (balance < price) return { ok: false, message: `Not enough credits — ₹${price} needed.` };
 
         set((s) => ({
           wallets: { ...s.wallets, [merchantId]: (s.wallets[merchantId] ?? 0) - price },
-          spots: { ...s.spots, [square]: { merchantId, price } },
+          boardBids: { ...s.boardBids, [merchantId]: { price, since: Date.now() } },
         }));
+
+        const position = rankBoard(get().boardBids).find((r) => r.merchantId === merchantId)?.position ?? null;
         return {
           ok: true,
-          message: existing ? `Took spot #${square} for ₹${price} — bids are final.` : `Claimed spot #${square} for ₹${price}.`,
+          message: position === 1 ? `You're #1 at ₹${price}. Bids are final.` : `Bid ₹${price} — you're at #${position}.`,
         };
       },
 
@@ -275,7 +283,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v7",
+      name: "viralgenie-store-v8",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({
@@ -285,8 +293,8 @@ export const useAppStore = create<State>()(
         wishWarEvents: s.wishWarEvents,
         wins: s.wins,
         loves: s.loves,
-        spots: s.spots,
-        spotClicks: s.spotClicks,
+        boardBids: s.boardBids,
+        brandClicks: s.brandClicks,
         totalPlaysThisWeek: s.totalPlaysThisWeek,
         activeMerchantId: s.activeMerchantId,
       }),

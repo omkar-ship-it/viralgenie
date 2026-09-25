@@ -10,57 +10,104 @@ import {
   CATEGORY_ICON,
   BRAND_TAGLINE,
   brandLinks,
+  rankBoard,
+  positionForPrice,
 } from "@/lib/data";
 import { BrandLogo } from "./BrandLogo";
 import { LoveButton } from "./LoveButton";
 
 /**
- * Opens when a board square is tapped: who's standing there, what you could
- * win from them, where to find them, and what it costs to take the square.
+ * Opens when a board position is tapped: who's standing there, what you could
+ * win from them, where to find them, and what it costs to take their place.
  */
-export function SpotModal({ square, onClose }: { square: number | null; onClose: () => void }) {
-  const spots = useAppStore((s) => s.spots);
+export function SpotModal({ position, onClose }: { position: number | null; onClose: () => void }) {
+  const boardBids = useAppStore((s) => s.boardBids);
   const stock = useAppStore((s) => s.stock);
-  const spotClicks = useAppStore((s) => s.spotClicks);
+  const brandClicks = useAppStore((s) => s.brandClicks);
   const wallets = useAppStore((s) => s.wallets);
   const activeMerchantId = useAppStore((s) => s.activeMerchantId);
-  const claimSpot = useAppStore((s) => s.claimSpot);
+  const placeBoardBid = useAppStore((s) => s.placeBoardBid);
   const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    if (square === null) return;
+    if (position === null) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [square, onClose]);
+  }, [position, onClose]);
 
-  if (square === null) return null;
+  if (position === null) return null;
 
-  const spot = spots[square];
-  const merchant = spot ? MERCHANTS.find((m) => m.id === spot.merchantId) : null;
+  const ranked = rankBoard(boardBids);
+  const entry = ranked[position - 1];
+  const merchant = entry ? MERCHANTS.find((m) => m.id === entry.merchantId) : null;
   const pod = merchant ? PODS.find((p) => p.id === merchant.podId) : null;
   const accent = pod ? CATEGORY_ACCENT[pod.category] : "accent";
   const rewards = merchant ? REWARD_ITEMS.filter((r) => r.merchantId === merchant.id) : [];
   const prizesLive = rewards.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
-  const nextPrice = spot ? spot.price + SPOT_INCREMENT : SPOT_BASE_PRICE;
-  const balance = wallets[activeMerchantId] ?? 0;
+
   const bidder = MERCHANTS.find((m) => m.id === activeMerchantId);
+  const balance = wallets[activeMerchantId] ?? 0;
+  const isSelf = entry?.merchantId === activeMerchantId;
+  const myBid = boardBids[activeMerchantId]?.price ?? 0;
+
+  // Outbidding this position means bidding just above the price that holds it.
+  const askingPrice = entry
+    ? Math.max(entry.price + SPOT_INCREMENT, myBid + SPOT_INCREMENT)
+    : Math.max(SPOT_BASE_PRICE, myBid + SPOT_INCREMENT);
+  const landsAt = positionForPrice(boardBids, askingPrice, activeMerchantId);
   const links = merchant ? brandLinks(merchant.id) : null;
 
   function bid() {
-    const res = claimSpot(square!, activeMerchantId);
+    const res = placeBoardBid(activeMerchantId, askingPrice);
     setFeedback(res);
-    window.setTimeout(() => setFeedback(null), 4000);
+    window.setTimeout(() => setFeedback(null), 4500);
   }
+
+  const bidPanel = (
+    <div className="mt-5 rounded-xl bg-surface-sunken px-4 py-3.5">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[12px] text-text-soft">
+          Bidding as <span className="font-semibold text-text">{bidder?.name}</span>
+          {myBid > 0 && <span className="text-text-soft"> · currently ₹{myBid}</span>}
+        </span>
+        <span className="mono text-[12.5px] font-bold text-accent-deep">₹{balance}</span>
+      </div>
+      <button
+        onClick={bid}
+        disabled={balance < askingPrice || isSelf}
+        className="btn-primary w-full rounded-full py-2.5 text-[12.5px] font-semibold"
+      >
+        {isSelf
+          ? "This is your position"
+          : entry
+            ? `Outbid ${merchant?.name} · ₹${askingPrice}`
+            : `Join the board · ₹${askingPrice}`}
+      </button>
+      {!isSelf && (
+        <p className="mt-1.5 text-center text-[10.5px] text-text-soft">
+          Lands you at <span className="mono font-semibold">#{landsAt}</span> — the board re-ranks instantly.
+        </p>
+      )}
+      {balance < askingPrice && !isSelf && (
+        <p className="mt-1 text-center text-[10.5px] text-warn">Not enough credits — top up on the board.</p>
+      )}
+      {feedback && (
+        <p className={`mt-2 text-center text-[11.5px] font-semibold ${feedback.ok ? "text-good" : "text-warn"}`}>
+          {feedback.message}
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div
       className="modal-backdrop"
       role="dialog"
       aria-modal="true"
-      aria-label={merchant ? `${merchant.name}, spot ${square}` : `Open spot ${square}`}
+      aria-label={merchant ? `${merchant.name}, position ${position}` : `Open position ${position}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -70,7 +117,7 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
           ✕
         </button>
 
-        {merchant && pod ? (
+        {merchant && pod && entry ? (
           <>
             <div className="h-1.5 w-full" style={{ background: `var(--${accent})` }} />
 
@@ -79,7 +126,7 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
                 <BrandLogo id={merchant.id} name={merchant.name} emoji={merchant.emoji} size="lg" />
                 <div className="min-w-0 flex-1">
                   <div className="mono mb-1 text-[11px] text-text-soft">
-                    Spot #{square} · held at ₹{spot!.price}
+                    Position #{position} · bid ₹{entry.price}
                   </div>
                   <h2 className="text-[22px] leading-tight font-semibold">{merchant.name}</h2>
                   <p className="mt-1 text-[13px] text-text-soft">{BRAND_TAGLINE[merchant.id]}</p>
@@ -97,7 +144,9 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
 
               <div className="mt-5 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-surface-sunken px-2 py-3">
-                  <div className="mono text-[17px] font-bold">{(spotClicks[square] ?? 0).toLocaleString("en-IN")}</div>
+                  <div className="mono text-[17px] font-bold">
+                    {(brandClicks[merchant.id] ?? 0).toLocaleString("en-IN")}
+                  </div>
                   <div className="text-[10px] tracking-wide text-text-soft uppercase">Clicks</div>
                 </div>
                 <div className="rounded-xl bg-surface-sunken px-2 py-3">
@@ -107,12 +156,11 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
                   <div className="text-[10px] tracking-wide text-text-soft uppercase">Rewards live</div>
                 </div>
                 <div className="rounded-xl bg-surface-sunken px-2 py-3">
-                  <div className="mono text-[17px] font-bold text-accent-deep">₹{spot!.price}</div>
-                  <div className="text-[10px] tracking-wide text-text-soft uppercase">Spot price</div>
+                  <div className="mono text-[17px] font-bold text-accent-deep">₹{entry.price}</div>
+                  <div className="text-[10px] tracking-wide text-text-soft uppercase">Live bid</div>
                 </div>
               </div>
 
-              {/* what you could win */}
               {rewards.length > 0 && (
                 <div className="mt-5">
                   <h3 className="mb-2 text-[12px] tracking-wide text-text-soft uppercase">What you could win</h3>
@@ -128,7 +176,6 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
                 </div>
               )}
 
-              {/* outbound links */}
               <div className="mt-5">
                 <h3 className="mb-2 text-[12px] tracking-wide text-text-soft uppercase">Find them</h3>
                 <div className="grid grid-cols-3 gap-2">
@@ -147,12 +194,8 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
                 </p>
               </div>
 
-              {/* in-app actions */}
               <div className="mt-5 flex flex-wrap items-center gap-2">
-                <Link
-                  href={`/brands/${merchant.id}`}
-                  className="btn-primary rounded-full px-4 py-2.5 text-[12.5px] font-semibold"
-                >
+                <Link href={`/brands/${merchant.id}`} className="btn-primary rounded-full px-4 py-2.5 text-[12.5px] font-semibold">
                   Brand page
                 </Link>
                 <Link
@@ -166,70 +209,19 @@ export function SpotModal({ square, onClose }: { square: number | null; onClose:
                 </span>
               </div>
 
-              {/* take the square */}
-              <div className="mt-5 rounded-xl bg-surface-sunken px-4 py-3.5">
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-[12px] text-text-soft">
-                    Bidding as <span className="font-semibold text-text">{bidder?.name}</span>
-                  </span>
-                  <span className="mono text-[12.5px] font-bold text-accent-deep">₹{balance}</span>
-                </div>
-                <button
-                  onClick={bid}
-                  disabled={balance < nextPrice || spot!.merchantId === activeMerchantId}
-                  className="btn-primary w-full rounded-full py-2.5 text-[12.5px] font-semibold"
-                >
-                  {spot!.merchantId === activeMerchantId
-                    ? "You already hold this spot"
-                    : `Outbid for #${square} · ₹${nextPrice}`}
-                </button>
-                {balance < nextPrice && spot!.merchantId !== activeMerchantId && (
-                  <p className="mt-1.5 text-center text-[10.5px] text-warn">
-                    Not enough credits — top up on the board.
-                  </p>
-                )}
-                {feedback && (
-                  <p className={`mt-2 text-center text-[11.5px] font-semibold ${feedback.ok ? "text-good" : "text-warn"}`}>
-                    {feedback.message}
-                  </p>
-                )}
-              </div>
+              {bidPanel}
             </div>
           </>
         ) : (
-          /* ---- open spot ---- */
           <div className="px-6 pt-8 pb-6 text-center">
             <div className="text-[40px]">🪧</div>
-            <div className="mono mt-2 text-[11px] text-text-soft">Spot #{square}</div>
-            <h2 className="mt-1 text-[22px] font-semibold">This square is empty</h2>
-            <p className="mx-auto mt-2 max-w-[38ch] text-[13px] text-text-soft">
-              Nobody is standing here, so the genie walks straight past it. Claim it and he
-              can stop on your brand instead.
+            <div className="mono mt-2 text-[11px] text-text-soft">Position #{position}</div>
+            <h2 className="mt-1 text-[22px] font-semibold">Nobody has bid this far down</h2>
+            <p className="mx-auto mt-2 max-w-[40ch] text-[13px] text-text-soft">
+              Positions fill from the top, so the open slots are always the tail of the
+              board. Place a bid and you slot in wherever it ranks.
             </p>
-
-            <div className="mt-5 rounded-xl bg-surface-sunken px-4 py-3.5">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-[12px] text-text-soft">
-                  Bidding as <span className="font-semibold text-text">{bidder?.name}</span>
-                </span>
-                <span className="mono text-[12.5px] font-bold text-accent-deep">₹{balance}</span>
-              </div>
-              <button
-                onClick={bid}
-                disabled={balance < nextPrice}
-                className="btn-primary w-full rounded-full py-2.5 text-[12.5px] font-semibold"
-              >
-                Claim #{square} · ₹{nextPrice}
-              </button>
-              {balance < nextPrice && (
-                <p className="mt-1.5 text-[10.5px] text-warn">Not enough credits — top up on the board.</p>
-              )}
-              {feedback && (
-                <p className={`mt-2 text-[11.5px] font-semibold ${feedback.ok ? "text-good" : "text-warn"}`}>
-                  {feedback.message}
-                </p>
-              )}
-            </div>
+            {bidPanel}
           </div>
         )}
       </div>
