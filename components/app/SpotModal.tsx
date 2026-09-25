@@ -11,10 +11,10 @@ import {
   BRAND_TAGLINE,
   brandLinks,
   rankBoard,
-  positionForPrice,
 } from "@/lib/data";
 import { BrandLogo } from "./BrandLogo";
 import { LoveButton } from "./LoveButton";
+import { BidCheckout } from "./BidCheckout";
 
 /**
  * Opens when a board position is tapped: who's standing there, what you could
@@ -24,10 +24,8 @@ export function SpotModal({ position, onClose }: { position: number | null; onCl
   const boardBids = useAppStore((s) => s.boardBids);
   const stock = useAppStore((s) => s.stock);
   const brandClicks = useAppStore((s) => s.brandClicks);
-  const wallets = useAppStore((s) => s.wallets);
   const activeMerchantId = useAppStore((s) => s.activeMerchantId);
-  const placeBoardBid = useAppStore((s) => s.placeBoardBid);
-  const [feedback, setFeedback] = useState<{ ok: boolean; message: string } | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
 
   useEffect(() => {
     if (position === null) return;
@@ -49,7 +47,6 @@ export function SpotModal({ position, onClose }: { position: number | null; onCl
   const prizesLive = rewards.reduce((sum, r) => sum + (stock[r.id] ?? 0), 0);
 
   const bidder = MERCHANTS.find((m) => m.id === activeMerchantId);
-  const balance = wallets[activeMerchantId] ?? 0;
   const isSelf = entry?.merchantId === activeMerchantId;
   const myBid = boardBids[activeMerchantId]?.price ?? 0;
 
@@ -57,13 +54,24 @@ export function SpotModal({ position, onClose }: { position: number | null; onCl
   const askingPrice = entry
     ? Math.max(entry.price + SPOT_INCREMENT, myBid + SPOT_INCREMENT)
     : Math.max(SPOT_BASE_PRICE, myBid + SPOT_INCREMENT);
-  const landsAt = positionForPrice(boardBids, askingPrice, activeMerchantId);
   const links = merchant ? brandLinks(merchant.id) : null;
 
-  function bid() {
-    const res = placeBoardBid(activeMerchantId, askingPrice);
-    setFeedback(res);
-    window.setTimeout(() => setFeedback(null), 4500);
+  if (checkoutOpen) {
+    return (
+      <BidCheckout
+        merchantId={activeMerchantId}
+        minimumPrice={askingPrice}
+        targetLabel={
+          entry
+            ? `To take position #${position} you need to beat ${merchant?.name}'s ₹${entry.price}.`
+            : `Position #${position} is open — any bid from ₹${SPOT_BASE_PRICE} puts you on the board.`
+        }
+        onClose={() => {
+          setCheckoutOpen(false);
+          onClose();
+        }}
+      />
+    );
   }
 
   const bidPanel = (
@@ -73,30 +81,17 @@ export function SpotModal({ position, onClose }: { position: number | null; onCl
           Bidding as <span className="font-semibold text-text">{bidder?.name}</span>
           {myBid > 0 && <span className="text-text-soft"> · currently ₹{myBid}</span>}
         </span>
-        <span className="mono text-[12.5px] font-bold text-accent-deep">₹{balance}</span>
       </div>
       <button
-        onClick={bid}
-        disabled={balance < askingPrice || isSelf}
+        onClick={() => setCheckoutOpen(true)}
+        disabled={isSelf}
         className="btn-primary w-full rounded-full py-2.5 text-[12.5px] font-semibold"
       >
-        {isSelf
-          ? "This is your position"
-          : entry
-            ? `Outbid ${merchant?.name} · ₹${askingPrice}`
-            : `Join the board · ₹${askingPrice}`}
+        {isSelf ? "This is your position" : entry ? `Outbid ${merchant?.name} · from ₹${askingPrice}` : `Join the board · from ₹${askingPrice}`}
       </button>
       {!isSelf && (
         <p className="mt-1.5 text-center text-[10.5px] text-text-soft">
-          Lands you at <span className="mono font-semibold">#{landsAt}</span> — the board re-ranks instantly.
-        </p>
-      )}
-      {balance < askingPrice && !isSelf && (
-        <p className="mt-1 text-center text-[10.5px] text-warn">Not enough credits — top up on the board.</p>
-      )}
-      {feedback && (
-        <p className={`mt-2 text-center text-[11.5px] font-semibold ${feedback.ok ? "text-good" : "text-warn"}`}>
-          {feedback.message}
+          Set your amount, add your details, pay — the board re-ranks the moment it lands.
         </p>
       )}
     </div>
@@ -225,6 +220,7 @@ export function SpotModal({ position, onClose }: { position: number | null; onCl
           </div>
         )}
       </div>
+
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS, REWARD_ITEMS } from "@/lib/store";
 import { WISH_BASE_PRICE, WISH_INCREMENT, WISH_PACK_SINGLE, WISH_PACK_BULK } from "@/lib/data";
 import { BrandLogo } from "@/components/app/BrandLogo";
+import { BidCheckout } from "@/components/app/BidCheckout";
+import Link from "next/link";
+import { rankBoard, SPOT_BASE_PRICE, SPOT_INCREMENT } from "@/lib/data";
 
 function timeAgo(iso: string) {
   const ms = Date.now() - new Date(iso).getTime();
@@ -37,12 +40,20 @@ export default function MerchantConsolePage() {
   const claimOrOutbidWish = useAppStore((s) => s.claimOrOutbidWish);
   const fulfillWish = useAppStore((s) => s.fulfillWish);
   const addStock = useAppStore((s) => s.addStock);
+  const boardBids = useAppStore((s) => s.boardBids);
+  const payments = useAppStore((s) => s.payments);
+  const profile = useAppStore((s) => s.merchantProfiles[s.activeMerchantId]);
 
   const [feedback, setFeedback] = useState<Record<string, { ok: boolean; message: string } | undefined>>({});
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [restockQty, setRestockQty] = useState<Record<string, string>>({});
   const [fulfillPick, setFulfillPick] = useState<Record<string, string>>({});
 
   const merchant = MERCHANTS.find((m) => m.id === activeMerchantId) ?? MERCHANTS[0];
+  const boardRanked = rankBoard(boardBids);
+  const boardTotal = boardRanked.length;
+  const myBoardRank = boardRanked.find((r) => r.merchantId === activeMerchantId);
+  const myPayments = payments.filter((p) => p.merchantId === activeMerchantId);
   const pod = PODS.find((p) => p.id === merchant.podId)!;
   const balance = wallets[merchant.id] ?? 0;
   const myItems = REWARD_ITEMS.filter((r) => r.merchantId === merchant.id);
@@ -115,6 +126,91 @@ export default function MerchantConsolePage() {
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5">
+        <Panel
+          title="Brandboard position"
+          badge={
+            myBoardRank ? (
+              <span className="mono rounded-full bg-surface-sunken px-2.5 py-0.5 text-[11px] font-bold text-accent-deep">
+                #{myBoardRank.position}
+              </span>
+            ) : (
+              <span className="rounded-full bg-warn-soft px-2.5 py-0.5 text-[11px] font-semibold text-warn">Not listed</span>
+            )
+          }
+        >
+          {myBoardRank ? (
+            <>
+              <div className="mono mb-1 text-[30px] font-semibold text-accent-deep">₹{myBoardRank.price}</div>
+              <p className="mb-4 text-[12px] text-text-soft">
+                Your live bid holds position #{myBoardRank.position} of {boardTotal}. Raise it
+                to climb — bids are final.
+              </p>
+            </>
+          ) : (
+            <p className="mb-4 text-[12px] text-text-soft">
+              You&rsquo;re not on the board. A bid from ₹{SPOT_BASE_PRICE} puts you in front of
+              everyone who plays The Genie&rsquo;s Round.
+            </p>
+          )}
+
+          <button
+            onClick={() => setCheckoutOpen(true)}
+            className="btn-primary w-full rounded-full py-2.5 text-[12.5px] font-semibold"
+          >
+            {myBoardRank ? `Raise bid · from ₹${myBoardRank.price + SPOT_INCREMENT}` : `Join the board · from ₹${SPOT_BASE_PRICE}`}
+          </button>
+          <Link href="/brandboard" className="mt-2 block text-center text-[11.5px] text-text-soft underline">
+            See the board
+          </Link>
+
+          <div className="mt-4 border-t border-border pt-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-[11px] tracking-wide text-text-soft uppercase">Billing details</span>
+              {profile && <span className="text-[10.5px] font-semibold text-good">On file</span>}
+            </div>
+            {profile ? (
+              <div className="text-[11.5px] text-text-soft">
+                <div className="truncate font-semibold text-text">{profile.contactName}</div>
+                <div className="truncate">{profile.businessEmail}</div>
+                <div>
+                  {profile.phone}
+                  {profile.gstin ? ` · ${profile.gstin}` : ""}
+                </div>
+              </div>
+            ) : (
+              <p className="text-[11.5px] text-text-soft">Added during your first bid.</p>
+            )}
+          </div>
+        </Panel>
+
+        <Panel
+          title="Payments"
+          badge={
+            <span className="mono rounded-full bg-surface-sunken px-2.5 py-0.5 text-[11px] font-semibold text-text-soft">
+              ₹{myPayments.reduce((sum, p) => sum + p.amountRs, 0)}
+            </span>
+          }
+        >
+          {myPayments.length === 0 ? (
+            <p className="text-[12.5px] text-text-soft">
+              No charges yet. Board bids are paid when you place them; wish credits are
+              topped up below.
+            </p>
+          ) : (
+            myPayments.slice(0, 6).map((p) => (
+              <div key={p.id} className="flex items-center gap-2.5 border-t border-border py-2.5 first:border-t-0">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[12.5px] font-semibold">{p.purpose}</div>
+                  <div className="mono truncate text-[11px] text-text-soft">
+                    {p.reference} · {new Date(p.atISO).toLocaleDateString("en-IN")}
+                  </div>
+                </div>
+                <span className="mono flex-none text-[13px] font-bold text-accent-deep">₹{p.amountRs}</span>
+              </div>
+            ))
+          )}
+        </Panel>
+
         <Panel title="Wish Wallet" badge={<span className="rounded-full bg-good-soft px-2.5 py-0.5 text-[11px] font-semibold text-good">Credits</span>}>
           <div className="mono mb-1 text-[34px] font-semibold text-accent-deep">₹{balance}</div>
           <p className="mb-4 text-[12px] text-text-soft">
@@ -280,6 +376,19 @@ export default function MerchantConsolePage() {
           </Panel>
         </div>
       </div>
+
+      {checkoutOpen && (
+        <BidCheckout
+          merchantId={activeMerchantId}
+          minimumPrice={myBoardRank ? myBoardRank.price + SPOT_INCREMENT : SPOT_BASE_PRICE}
+          targetLabel={
+            myBoardRank
+              ? `You're at #${myBoardRank.position} with ₹${myBoardRank.price}. Go higher to climb.`
+              : "You're not on the board yet — any bid puts you on it."
+          }
+          onClose={() => setCheckoutOpen(false)}
+        />
+      )}
     </div>
   );
 }

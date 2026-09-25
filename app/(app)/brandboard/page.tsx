@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppStore, useHasHydrated, PODS, MERCHANTS } from "@/lib/store";
 import { BRANDBOARD_SPOTS, SPOT_BASE_PRICE, CATEGORY_ACCENT, squareToCell } from "@/lib/data";
@@ -10,12 +10,32 @@ import { BoardVariantSwitch } from "@/components/app/BoardVariantSwitch";
 import { SpotModal } from "@/components/app/SpotModal";
 import { useBrandboard } from "@/components/app/useBrandboard";
 
+const BOARD_PAD = 10;
+const BOARD_GAP = 4;
+
 export default function BrandboardPage() {
   const hydrated = useHasHydrated();
   const registerBrandClick = useAppStore((s) => s.registerBrandClick);
 
   const { mounted, ranked, claimed, start, busy, slowing, result, tokenSquare, hopping, startRound } = useBrandboard();
   const [selected, setSelected] = useState<number | null>(null);
+  const [cellSize, setCellSize] = useState(0);
+  const observer = useRef<ResizeObserver | null>(null);
+
+  // The board is 10x5, so its height is no longer its width and a percentage
+  // in `top` would resolve against the wrong axis — measure a cell instead.
+  // This is a callback ref, not an effect: the board only mounts after the
+  // hydration gate below, by which point a mount effect has already run.
+  const attachBoard = useCallback((node: HTMLDivElement | null) => {
+    observer.current?.disconnect();
+    if (!node) return;
+    const ro = new ResizeObserver(() => {
+      const cell = node.querySelector(".bb-cell") as HTMLElement | null;
+      if (cell) setCellSize(cell.offsetWidth);
+    });
+    ro.observe(node);
+    observer.current = ro;
+  }, []);
 
   if (!hydrated || !mounted) {
     return <div className="mx-auto max-w-[1180px] px-6 py-24 text-text-soft">Waking the genie…</div>;
@@ -56,7 +76,7 @@ export default function BrandboardPage() {
         <div className="mt-9 grid gap-7" style={{ gridTemplateColumns: "minmax(0,1.35fr) minmax(280px,0.65fr)" }}>
           {/* ---------------- board ---------------- */}
           <div>
-            <div className="bb-board">
+            <div className="bb-board" ref={attachBoard}>
               {Array.from({ length: BRANDBOARD_SPOTS }, (_, i) => {
                 const position = i + 1;
                 const entry = ranked[position - 1];
@@ -101,13 +121,12 @@ export default function BrandboardPage() {
 
               <span
                 className={`bb-token ${hopping ? "hopping" : ""}`}
-                // 10px padding, 4px gap: a cell is (100% - 20px - 9*4px)/10 wide
-                // and each column starts one cell + one gap further along.
                 style={{
-                  left: `calc(10px + ${tokenCell.col} * ((100% - 56px) / 10 + 4px))`,
-                  top: `calc(10px + ${tokenCell.row} * ((100% - 56px) / 10 + 4px))`,
-                  width: `calc((100% - 56px) / 10)`,
-                  height: `calc((100% - 56px) / 10)`,
+                  left: BOARD_PAD + tokenCell.col * (cellSize + BOARD_GAP),
+                  top: BOARD_PAD + tokenCell.row * (cellSize + BOARD_GAP),
+                  width: cellSize,
+                  height: cellSize,
+                  opacity: cellSize ? 1 : 0,
                 }}
                 aria-hidden="true"
               >

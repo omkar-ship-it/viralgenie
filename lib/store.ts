@@ -22,6 +22,9 @@ import {
   type WishWarEvent,
   type WinRecord,
   type BoardBid,
+  type MerchantProfile,
+  type Payment,
+  type PaymentMethod,
 } from "./data";
 
 function uid(prefix: string) {
@@ -42,6 +45,8 @@ type State = {
   loves: Record<string, number>;
   boardBids: Record<string, BoardBid>;
   brandClicks: Record<string, number>;
+  merchantProfiles: Record<string, MerchantProfile>;
+  payments: Payment[];
   totalPlaysThisWeek: number;
   activeMerchantId: string;
 
@@ -54,7 +59,12 @@ type State = {
   addWish: (customerName: string, category: string, text: string) => void;
   upvoteWish: (wishId: string) => void;
   loveBrand: (merchantId: string) => void;
-  placeBoardBid: (merchantId: string, price: number) => { ok: boolean; message: string };
+  saveMerchantProfile: (merchantId: string, profile: MerchantProfile) => void;
+  placeBoardBid: (
+    merchantId: string,
+    price: number,
+    payment: { method: PaymentMethod; reference: string }
+  ) => { ok: boolean; message: string; position?: number; receiptId?: string };
   registerBrandClick: (merchantId: string) => void;
   playBrand: (merchantId: string) => { rewardLabel: string; redemptionCode: string } | null;
   addStock: (rewardId: string, qty: number) => void;
@@ -74,6 +84,8 @@ export const useAppStore = create<State>()(
       loves: INITIAL_LOVES,
       boardBids: INITIAL_BOARD_BIDS,
       brandClicks: INITIAL_BRAND_CLICKS,
+      merchantProfiles: {},
+      payments: [],
       totalPlaysThisWeek: 0,
       activeMerchantId: MERCHANTS[0].id,
 
@@ -170,11 +182,16 @@ export const useAppStore = create<State>()(
         set((s) => ({ brandClicks: { ...s.brandClicks, [merchantId]: (s.brandClicks[merchantId] ?? 0) + 1 } }));
       },
 
+      saveMerchantProfile: (merchantId, profile) => {
+        set((s) => ({ merchantProfiles: { ...s.merchantProfiles, [merchantId]: profile } }));
+      },
+
       /**
-       * One bid per brand. Raising it re-ranks the whole board, so there is
-       * never a gap: claimed positions stay contiguous from rank 1.
+       * One bid per brand, paid for at the moment it's placed. Raising it
+       * re-ranks the whole board, so there is never a gap: claimed positions
+       * stay contiguous from rank 1.
        */
-      placeBoardBid: (merchantId, price) => {
+      placeBoardBid: (merchantId, price, payment) => {
         const current = get().boardBids[merchantId];
         if (current && price <= current.price) {
           return { ok: false, message: `Your bid is already ₹${current.price} — go higher to move up.` };
@@ -182,18 +199,33 @@ export const useAppStore = create<State>()(
         if (price < SPOT_BASE_PRICE) {
           return { ok: false, message: `Bids start at ₹${SPOT_BASE_PRICE}.` };
         }
-        const balance = get().wallets[merchantId] ?? 0;
-        if (balance < price) return { ok: false, message: `Not enough credits — ₹${price} needed.` };
+        if (!get().merchantProfiles[merchantId]) {
+          return { ok: false, message: "Add your business details before bidding." };
+        }
 
+        const receiptId = uid("rcpt");
         set((s) => ({
-          wallets: { ...s.wallets, [merchantId]: (s.wallets[merchantId] ?? 0) - price },
           boardBids: { ...s.boardBids, [merchantId]: { price, since: Date.now() } },
+          payments: [
+            {
+              id: receiptId,
+              merchantId,
+              amountRs: price,
+              purpose: "Brandboard position",
+              method: payment.method,
+              reference: payment.reference,
+              atISO: new Date().toISOString(),
+            },
+            ...s.payments,
+          ],
         }));
 
-        const position = rankBoard(get().boardBids).find((r) => r.merchantId === merchantId)?.position ?? null;
+        const position = rankBoard(get().boardBids).find((r) => r.merchantId === merchantId)?.position;
         return {
           ok: true,
-          message: position === 1 ? `You're #1 at ₹${price}. Bids are final.` : `Bid ₹${price} — you're at #${position}.`,
+          position,
+          receiptId,
+          message: position === 1 ? `Paid ₹${price} — you're #1.` : `Paid ₹${price} — you're at #${position}.`,
         };
       },
 
@@ -283,7 +315,7 @@ export const useAppStore = create<State>()(
       },
     }),
     {
-      name: "viralgenie-store-v8",
+      name: "viralgenie-store-v9",
       storage: createJSONStorage(() => localStorage),
       skipHydration: true,
       partialize: (s) => ({
@@ -295,6 +327,8 @@ export const useAppStore = create<State>()(
         loves: s.loves,
         boardBids: s.boardBids,
         brandClicks: s.brandClicks,
+        merchantProfiles: s.merchantProfiles,
+        payments: s.payments,
         totalPlaysThisWeek: s.totalPlaysThisWeek,
         activeMerchantId: s.activeMerchantId,
       }),

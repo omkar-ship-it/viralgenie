@@ -296,7 +296,7 @@ export const INITIAL_LOVES: Record<string, number> = Object.fromEntries(
   BRANDS.map((b, i) => [b.id, 18 + ((i * 47) % 214)])
 );
 
-export const MAX_BRANDS_DISPLAYED = 100;
+export const MAX_BRANDS_DISPLAYED = 50;
 
 export const INITIAL_WISHES: Wish[] = [
   {
@@ -497,8 +497,39 @@ export function brandLinks(id: string) {
   };
 }
 
-// --- Brandboard: 100 positions, ranked by live bid ---
-export const BRANDBOARD_SPOTS = 100;
+/** Billing details a merchant must supply before their first bid goes live. */
+export type MerchantProfile = {
+  contactName: string;
+  businessEmail: string;
+  phone: string;
+  gstin?: string;
+};
+
+export type PaymentMethod = "upi" | "card" | "netbanking";
+
+/**
+ * A recorded charge. `reference` is always a masked, non-sensitive string
+ * (a UPI handle or a card's last four) — full card numbers are never stored
+ * or persisted anywhere in this prototype.
+ */
+export type Payment = {
+  id: string;
+  merchantId: string;
+  amountRs: number;
+  purpose: string;
+  method: PaymentMethod;
+  reference: string;
+  atISO: string;
+};
+
+export const PAYMENT_METHODS: Array<{ id: PaymentMethod; label: string; hint: string }> = [
+  { id: "upi", label: "UPI", hint: "Pay from any UPI app" },
+  { id: "card", label: "Card", hint: "Credit or debit" },
+  { id: "netbanking", label: "Netbanking", hint: "All major banks" },
+];
+
+// --- Brandboard: 50 positions, ranked by live bid ---
+export const BRANDBOARD_SPOTS = 50;
 export const SPOT_BASE_PRICE = 100;
 export const SPOT_INCREMENT = 100;
 
